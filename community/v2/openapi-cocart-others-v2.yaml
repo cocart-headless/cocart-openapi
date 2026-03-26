@@ -1,0 +1,267 @@
+openapi: 3.0.3
+info:
+  title: CoCart - Other API v2
+  version: 4.9.0
+  description: |
+    CoCart REST API for authentication, logout, and store information.
+  termsOfService: https://cocartapi.com/terms-of-conditions-polar/
+  contact:
+    email: support@cocartapi.com
+  license:
+    name: GNU General Public License v3.0
+    url: http://www.gnu.org/licenses/gpl-3.0.html
+externalDocs:
+  description: Find out more about CoCart API
+  url: https://docs.cocartapi.com
+servers:
+- url: '{protocol}://{host}/wp-json/cocart/v2'
+  description: API v2
+  variables:
+    protocol:
+      enum:
+      - http
+      - https
+      default: https
+    host:
+      default: example-store.com
+      description: Your store domain
+tags:
+- name: authentication
+  description: Operations for user authentication
+- name: store
+  description: Operations for retrieving store information and configuration
+paths:
+  /login:
+    post:
+      tags:
+      - authentication
+      summary: Login user
+      description: Logs in a user and creates a session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  description: Username or email address.
+                  type: string
+                password:
+                  description: User password.
+                  type: string
+              required:
+              - username
+              - password
+      responses:
+        '200':
+          description: User logged in successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                user_id: '42'
+                first_name: John
+                last_name: Doe
+                display_name: John Doe
+                role: Customer
+                avatar_urls:
+                  '24': https://secure.gravatar.com/avatar/example?s=24&d=mm&r=g
+                  '48': https://secure.gravatar.com/avatar/example?s=48&d=mm&r=g
+                  '96': https://secure.gravatar.com/avatar/example?s=96&d=mm&r=g
+                email: john.doe@example.com
+                extras: {}
+                dev_note: Don't forget to store the users login information in order to authenticate all other routes with
+                  CoCart.
+        '400':
+          description: Bad request - invalid credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_invalid_credentials
+                message: Invalid username or password.
+                data:
+                  status: 400
+        '403':
+          description: Authentication failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_authentication_failed
+                message: Authentication failed. Please check your credentials.
+                data:
+                  status: 403
+  /logout:
+    post:
+      tags:
+      - authentication
+      summary: Logout user
+      description: Logs out the current user and destroys the session.
+      responses:
+        '200':
+          description: User logged out successfully.
+          content:
+            application/json:
+              schema:
+                type: boolean
+                example: true
+        '400':
+          description: Bad request - logout failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_logout_failed
+                message: Logout failed.
+                data:
+                  status: 400
+  /store:
+    get:
+      tags:
+      - store
+      summary: Get store information
+      description: |
+        Gets general store information including routes and configuration.
+      responses:
+        '200':
+          description: Store information retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreInfo'
+              example:
+                version: 4.6.0
+                title: Example Store
+                description: Your trusted online retailer for electronics, clothing, and more
+                home_url: https://example-store.com
+                language: en_US
+                gmt_offset: '-5'
+                timezone_string: America/New_York
+                store_address:
+                  address: 123 Commerce Street
+                  address_2: Suite 500
+                  city: New York
+                  state: NY
+                  postcode: '10001'
+                  country: US
+                routes:
+                  /cart: Manage shopping cart
+                  /cart/add-item: Add item to cart
+                  /cart/items: Get cart items
+                  /products: Browse products
+                  /products/categories: Browse product categories
+                  /login: User authentication
+                  /logout: User logout
+      security:
+      - {}
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: |
+        Basic authentication with username and password.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Bearer token authentication (JWT). Optional for cart and products endpoints.
+        When provided by customers, enables enhanced functionality like persistent carts and user-specific data.
+        Required only for admin operations like managing cart sessions.
+  schemas:
+    LoginResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+          description: Unique ID of the user on the site.
+        first_name:
+          type: string
+          description: The first name of the user (if any).
+        last_name:
+          type: string
+          description: The last name of the user (if any).
+        display_name:
+          type: string
+          description: The display name of the user (if any).
+        role:
+          type: string
+          description: The role type assigned to the user.
+        avatar_urls:
+          type: object
+          description: The avatar URLs of the user for each avatar size registered.
+          additionalProperties:
+            type: string
+        email:
+          type: string
+          description: The email address of the user.
+        extras:
+          type: object
+          description: Extra details added via the filter.
+          additionalProperties: true
+        dev_note:
+          type: string
+          description: A message to developers.
+    StoreInfo:
+      type: object
+      properties:
+        version:
+          type: string
+          description: CoCart version.
+        title:
+          type: string
+          description: Store title.
+        description:
+          type: string
+          description: Store description.
+        home_url:
+          type: string
+          description: Store home URL.
+        language:
+          type: string
+          description: Store language.
+        gmt_offset:
+          type: string
+          description: GMT offset.
+        timezone_string:
+          type: string
+          description: Timezone string.
+        store_address:
+          type: object
+          description: Store address information.
+        routes:
+          type: object
+          description: Available API routes.
+          additionalProperties: true
+    ErrorResponse:
+      type: object
+      description: Standard error response structure.
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code.
+          example: cocart_invalid_parameter
+        message:
+          type: string
+          description: Human-readable error message.
+          example: Invalid parameter provided.
+        data:
+          type: object
+          description: Additional error data.
+          properties:
+            status:
+              type: integer
+              description: HTTP status code.
+              example: 400
+            params:
+              type: object
+              description: Parameter-specific error details.
+              additionalProperties: true
+          additionalProperties: true

@@ -1,0 +1,318 @@
+openapi: 3.0.3
+info:
+  title: CoCart - Sessions API v2
+  version: 5.0.0
+  description: |
+    CoCart REST API for administrative cart session management.
+  termsOfService: https://cocartapi.com/terms-of-conditions-polar/
+  contact:
+    email: support@cocartapi.com
+  license:
+    name: GNU General Public License v3.0
+    url: http://www.gnu.org/licenses/gpl-3.0.html
+externalDocs:
+  description: Find out more about CoCart API
+  url: https://docs.cocartapi.com
+servers:
+- url: '{protocol}://{host}/wp-json/cocart/v2'
+  description: API v2
+  variables:
+    protocol:
+      enum:
+      - http
+      - https
+      default: https
+    host:
+      default: example-store.com
+      description: Your store domain
+tags:
+- name: admin-sessions
+  description: Administrative operations for managing cart sessions
+paths:
+  /sessions:
+    get:
+      tags:
+      - admin-sessions
+      summary: Get cart sessions
+      description: Gets a list of cart sessions for administrative purposes.
+      parameters:
+      - name: page
+        in: query
+        description: Current page of the collection.
+        schema:
+          type: integer
+          default: 1
+      - name: per_page
+        in: query
+        description: Maximum number of items to return per page.
+        schema:
+          type: integer
+          default: 10
+      responses:
+        '200':
+          description: Cart sessions retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CartSession'
+              example:
+              - session_key: cb7a23af96a3f23af3c28a8b4b8c6d5e
+                cart:
+                  d6b3e8e5a1b0c6e4f2a3b1d8c5e6f9a2:
+                    key: d6b3e8e5a1b0c6e4f2a3b1d8c5e6f9a2
+                    product_id: 145
+                    variation_id: 0
+                    quantity: 2
+                    line_total: 36.0
+                    line_tax: 3.6
+                customer:
+                  billing_email: john.doe@example.com
+                  billing_first_name: John
+                  billing_last_name: Doe
+                session_expiry: '2024-10-15T18:30:00'
+              - session_key: f8d9e1a2b3c4d5e6f7a8b9c0d1e2f3a4
+                cart:
+                  a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6:
+                    key: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6
+                    product_id: 278
+                    variation_id: 289
+                    quantity: 1
+                    line_total: 80.0
+                    line_tax: 8.0
+                customer:
+                  billing_email: jane.smith@example.com
+                  billing_first_name: Jane
+                  billing_last_name: Smith
+                session_expiry: '2024-10-16T12:15:00'
+        '400':
+          description: Bad request - invalid parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_invalid_parameter
+                message: Invalid parameter provided.
+                data:
+                  status: 400
+        '401':
+          description: Unauthorized - authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_unauthorized
+                message: Authentication required to access sessions.
+                data:
+                  status: 401
+        '403':
+          description: Forbidden - insufficient permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_forbidden
+                message: You do not have permission to access sessions.
+                data:
+                  status: 403
+      security:
+      - basicAuth: []
+      - bearerAuth: []
+  /sessions/{id}:
+    get:
+      tags:
+      - admin-sessions
+      summary: Get cart session
+      description: Gets a specific cart session by session key.
+      parameters:
+      - name: id
+        in: path
+        description: Unique session key for the cart session.
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Cart session retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartSession'
+        '400':
+          description: Bad request - invalid session ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_invalid_session_id
+                message: Invalid session ID provided.
+                data:
+                  status: 400
+        '401':
+          description: Unauthorized - authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_unauthorized
+                message: Authentication required to access this session.
+                data:
+                  status: 401
+        '403':
+          description: Forbidden - insufficient permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_forbidden
+                message: You do not have permission to access this session.
+                data:
+                  status: 403
+        '404':
+          description: Cart session not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_session_not_found
+                message: Cart session not found.
+                data:
+                  status: 404
+      security:
+      - basicAuth: []
+      - bearerAuth: []
+    delete:
+      tags:
+      - admin-sessions
+      summary: Delete cart session
+      description: Deletes a specific cart session by session key.
+      parameters:
+      - name: id
+        in: path
+        description: Unique session key for the cart session.
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Cart session deleted successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                    example: true
+        '400':
+          description: Bad request - invalid session ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_invalid_session_id
+                message: Invalid session ID provided.
+                data:
+                  status: 400
+        '401':
+          description: Unauthorized - authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_unauthorized
+                message: Authentication required to delete sessions.
+                data:
+                  status: 401
+        '403':
+          description: Forbidden - insufficient permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_forbidden
+                message: You do not have permission to delete sessions.
+                data:
+                  status: 403
+        '404':
+          description: Cart session not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_session_not_found
+                message: Cart session not found.
+                data:
+                  status: 404
+      security:
+      - basicAuth: []
+      - bearerAuth: []
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: |
+        Basic authentication with username and password.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Bearer token authentication (JWT). Optional for cart and products endpoints.
+        When provided by customers, enables enhanced functionality like persistent carts and user-specific data.
+        Required only for admin operations like managing cart sessions.
+  schemas:
+    CartSession:
+      type: object
+      properties:
+        session_key:
+          type: string
+          description: Unique session key.
+        cart:
+          type: object
+          description: Cart data for this session.
+        customer:
+          type: object
+          description: Customer data for this session.
+        session_expiry:
+          type: string
+          format: date-time
+          description: Session expiry date.
+    ErrorResponse:
+      type: object
+      description: Standard error response structure.
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code.
+          example: cocart_invalid_parameter
+        message:
+          type: string
+          description: Human-readable error message.
+          example: Invalid parameter provided.
+        data:
+          type: object
+          description: Additional error data.
+          properties:
+            status:
+              type: integer
+              description: HTTP status code.
+              example: 400
+            params:
+              type: object
+              description: Parameter-specific error details.
+              additionalProperties: true
+          additionalProperties: true
