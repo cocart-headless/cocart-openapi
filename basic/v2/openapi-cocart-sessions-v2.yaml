@@ -135,6 +135,12 @@ paths:
         required: true
         schema:
           type: string
+      - name: thumb
+        in: query
+        description: Include thumbnail images for items.
+        schema:
+          type: boolean
+        required: false
       responses:
         '200':
           description: Cart session retrieved successfully.
@@ -259,6 +265,70 @@ paths:
       security:
       - basicAuth: []
       - bearerAuth: []
+  /sessions/{id}/items:
+    get:
+      tags:
+      - admin-sessions
+      summary: Get session items
+      description: Gets the items from a specific cart session.
+      parameters:
+      - name: id
+        in: path
+        description: Unique session key for the cart session.
+        required: true
+        schema:
+          type: string
+      - name: thumb
+        in: query
+        description: Include thumbnail images for items.
+        schema:
+          type: boolean
+        required: false
+      responses:
+        '200':
+          description: Session items retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CartItem'
+        '401':
+          description: Unauthorized - authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_unauthorized
+                message: Authentication required to access session items.
+                data:
+                  status: 401
+        '403':
+          description: Forbidden - insufficient permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_forbidden
+                message: You do not have permission to access session items.
+                data:
+                  status: 403
+        '404':
+          description: Cart session not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_session_not_found
+                message: Cart session not found.
+                data:
+                  status: 404
+      security:
+      - basicAuth: []
+      - bearerAuth: []
 components:
   securitySchemes:
     basicAuth:
@@ -291,6 +361,101 @@ components:
           type: string
           format: date-time
           description: Session expiry date.
+    CartItem:
+      type: object
+      properties:
+        item_key:
+          type: string
+          description: Unique identifier for the item within the cart.
+        id:
+          type: integer
+          description: Product ID.
+        name:
+          type: string
+          description: Product name.
+        title:
+          type: string
+          description: Product title.
+        price:
+          type: string
+          description: Current product price.
+        quantity:
+          type: object
+          description: Quantity information for this item.
+          properties:
+            value:
+              type: number
+              description: Current quantity of the item in the cart.
+            min_purchase:
+              type: number
+              description: Minimum quantity that can be purchased.
+            max_purchase:
+              type: number
+              description: Maximum quantity that can be purchased.
+        totals:
+          type: object
+          description: Item totals.
+          properties:
+            subtotal:
+              type: number
+              description: Line subtotal (before discounts).
+            subtotal_tax:
+              type: number
+              description: Line subtotal tax.
+            total:
+              type: number
+              description: Line total (after discounts).
+            tax:
+              type: number
+              description: Line total tax.
+        slug:
+          type: string
+          description: Product slug.
+        meta:
+          type: object
+          description: Item metadata.
+          properties:
+            product_type:
+              type: string
+              description: Product type.
+            sku:
+              type: string
+              description: Product SKU.
+            dimensions:
+              type: object
+              description: Product dimensions.
+              properties:
+                length:
+                  type: string
+                width:
+                  type: string
+                height:
+                  type: string
+                unit:
+                  type: string
+            weight:
+              type: string
+              description: Product weight.
+            variation:
+              description: Chosen attributes (for variations).
+              oneOf:
+              - type: object
+                additionalProperties:
+                  type: string
+              - type: array
+                items:
+                  type: string
+          additionalProperties: true
+        backorders:
+          type: string
+          description: Backorder status.
+        cart_item_data:
+          type: object
+          description: Custom cart item data.
+          additionalProperties: true
+        featured_image:
+          type: string
+          description: Product featured image URL.
     ErrorResponse:
       type: object
       description: Standard error response structure.

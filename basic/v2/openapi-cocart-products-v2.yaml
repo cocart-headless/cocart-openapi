@@ -34,6 +34,8 @@ tags:
   description: Operations for browsing and filtering product categories
 - name: product-tags
   description: Operations for browsing and filtering product tags
+- name: product-brands
+  description: Operations for browsing and filtering product brands
 - name: product-reviews
   description: Operations for retrieving product reviews and ratings
 - name: product-variations
@@ -2109,6 +2111,190 @@ paths:
                 message: Product tag not found.
                 data:
                   status: 404
+  /products/brands:
+    get:
+      tags:
+      - product-brands
+      summary: Get product brands
+      description: |
+        Gets a list of product brands.
+      parameters:
+      - name: page
+        in: query
+        description: Current page of the collection.
+        schema:
+          type: integer
+          default: 1
+      - name: per_page
+        in: query
+        description: Maximum number of items to return per page.
+        schema:
+          type: integer
+          default: 10
+      - name: search
+        in: query
+        description: Limit results to those matching a search string.
+        schema:
+          type: string
+      - name: exclude
+        in: query
+        description: Ensure result set excludes specific IDs.
+        schema:
+          type: array
+          items:
+            type: integer
+      - name: include
+        in: query
+        description: Limit result set to specific IDs.
+        schema:
+          type: array
+          items:
+            type: integer
+      - name: order
+        in: query
+        description: Sort order.
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+          default: asc
+      - name: orderby
+        in: query
+        description: Sort brands by field.
+        schema:
+          type: string
+          enum:
+          - id
+          - include
+          - name
+          - slug
+          - term_group
+          - description
+          - count
+          default: name
+      - name: hide_empty
+        in: query
+        description: Whether to hide brands with no products.
+        schema:
+          type: boolean
+          default: false
+      - name: slug
+        in: query
+        description: Limit result set to brands with specific slug(s).
+        schema:
+          type: array
+          items:
+            type: string
+      - $ref: '#/components/parameters/IfNoneMatch'
+      - $ref: '#/components/parameters/SkipCache'
+      responses:
+        '200':
+          description: Product brands retrieved successfully.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETagHeader'
+            CoCart-Cache:
+              $ref: '#/components/headers/CoCartCacheHeader'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductBrand'
+              example:
+              - id: 10
+                name: Nike
+                slug: nike
+                description: Athletic footwear and apparel
+                count: 42
+              - id: 11
+                name: Adidas
+                slug: adidas
+                description: Sports and lifestyle brand
+                count: 35
+        '304':
+          description: Not Modified - resource has not changed since last request.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETagHeader'
+            CoCart-Cache:
+              $ref: '#/components/headers/CoCartCacheHeader'
+        '400':
+          description: Bad request - invalid parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_invalid_parameter
+                message: Invalid parameter provided.
+                data:
+                  status: 400
+  /products/brands/{id}:
+    get:
+      tags:
+      - product-brands
+      summary: Get single product brand
+      description: |
+        Gets a single product brand by ID.
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier for the brand.
+        required: true
+        schema:
+          type: integer
+      - $ref: '#/components/parameters/IfNoneMatch'
+      - $ref: '#/components/parameters/SkipCache'
+      responses:
+        '200':
+          description: Product brand retrieved successfully.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETagHeader'
+            CoCart-Cache:
+              $ref: '#/components/headers/CoCartCacheHeader'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductBrand'
+              example:
+                id: 10
+                name: Nike
+                slug: nike
+                description: Athletic footwear and apparel
+                count: 42
+                rest_url: https://example-store.com/wp-json/cocart/v2/products/brands/10
+        '304':
+          description: Not Modified - resource has not changed since last request.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETagHeader'
+            CoCart-Cache:
+              $ref: '#/components/headers/CoCartCacheHeader'
+        '400':
+          description: Bad request - invalid brand ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_invalid_brand_id
+                message: Invalid brand ID provided.
+                data:
+                  status: 400
+        '404':
+          description: Product brand not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_brand_not_found
+                message: Product brand not found.
+                data:
+                  status: 404
   /products/reviews:
     get:
       tags:
@@ -2278,6 +2464,75 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /products/reviews/mine:
+    get:
+      tags:
+      - product-reviews
+      summary: Get my product reviews
+      description: |
+        Gets product reviews submitted by the currently authenticated user.
+      parameters:
+      - name: page
+        in: query
+        description: Current page of the collection.
+        schema:
+          type: integer
+          default: 1
+      - name: per_page
+        in: query
+        description: Maximum number of items to return per page.
+        schema:
+          type: integer
+          default: 10
+      - name: search
+        in: query
+        description: Limit results to those matching a search string.
+        schema:
+          type: string
+      - name: product
+        in: query
+        description: Limit results to reviews for specific products.
+        schema:
+          type: array
+          items:
+            type: integer
+      - $ref: '#/components/parameters/IfNoneMatch'
+      - $ref: '#/components/parameters/SkipCache'
+      responses:
+        '200':
+          description: User's product reviews retrieved successfully.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETagHeader'
+            CoCart-Cache:
+              $ref: '#/components/headers/CoCartCacheHeader'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductReview'
+        '304':
+          description: Not Modified - resource has not changed since last request.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETagHeader'
+            CoCart-Cache:
+              $ref: '#/components/headers/CoCartCacheHeader'
+        '401':
+          description: Unauthorized - authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_unauthorized
+                message: Authentication required to access your reviews.
+                data:
+                  status: 401
+      security:
+      - basicAuth: []
+      - bearerAuth: []
   /products/{id}/variations:
     get:
       tags:
@@ -3384,6 +3639,28 @@ components:
         rest_url:
           type: string
           description: REST URL for this tag
+    ProductBrand:
+      type: object
+      description: Product Brand
+      properties:
+        id:
+          type: integer
+          description: Brand ID
+        name:
+          type: string
+          description: Brand name
+        slug:
+          type: string
+          description: Brand slug
+        description:
+          type: string
+          description: Brand description
+        count:
+          type: integer
+          description: Number of products in this brand
+        rest_url:
+          type: string
+          description: REST URL for this brand
     ProductImage:
       type: object
       description: Product Image with multiple size URLs

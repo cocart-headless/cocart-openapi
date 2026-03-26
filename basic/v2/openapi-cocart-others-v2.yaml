@@ -45,11 +45,15 @@ paths:
               type: object
               properties:
                 username:
-                  description: Username or email address.
+                  description: Username, email address, or phone for authentication.
                   type: string
                 password:
                   description: User password.
                   type: string
+                avatars:
+                  description: Include avatar URLs in the response.
+                  type: boolean
+                  default: false
               required:
               - username
               - password
