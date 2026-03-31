@@ -556,28 +556,12 @@ paths:
             schema:
               type: object
               properties:
-                items:
-                  description: Array of items to add to the cart.
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      id:
-                        description: Unique identifier for the product or variation ID.
-                        type: string
-                      quantity:
-                        description: Quantity of this item to add to the cart.
-                        type: string
-                        default: "1"
-                      variation:
-                        description: Variable attributes that identify the variation of the item.
-                        type: object
-                      item_data:
-                        description: Additional item data passed to make item unique.
-                        type: object
-                    required:
-                      - id
-                      - quantity
+                id:
+                  description: Unique identifier for the container product ID.
+                  type: string
+                quantity:
+                  description: List of items and quantity to add to the cart.
+                  type: object
                 email:
                   description: Set the customers billing email address.
                   type: string
@@ -590,7 +574,7 @@ paths:
                   type: boolean
                   default: false
               required:
-                - items
+                - quantity
       responses:
         "200":
           description: Items added to cart successfully.
@@ -3922,14 +3906,14 @@ paths:
         - basicAuth: []
         - bearerAuth: []
 
-  /sessions/{id}:
+  /session/{session_key}:
     get:
       tags:
         - admin-sessions
       summary: Get cart session
       description: Gets a specific cart session by session key.
       parameters:
-        - name: id
+        - name: session_key
           in: path
           description: Unique session key for the cart session.
           required: true
@@ -3996,7 +3980,7 @@ paths:
       summary: Delete cart session
       description: Deletes a specific cart session by session key.
       parameters:
-        - name: id
+        - name: session_key
           in: path
           description: Unique session key for the cart session.
           required: true

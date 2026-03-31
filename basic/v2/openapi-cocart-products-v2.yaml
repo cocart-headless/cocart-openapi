@@ -476,8 +476,9 @@ paths:
                     has_options: false
                     is_purchasable: true
                     purchase_quantity:
-                      min_purchase: 1
-                      max_purchase: 87
+                      minimum: 1
+                      maximum: 87
+                      multiple_of: 1
                     rest_url: https://example-store.com/wp-json/cocart/v2/cart/add-item?id=145&quantity=1
                   meta_data: []
                 - id: 201
@@ -621,8 +622,9 @@ paths:
                     has_options: true
                     is_purchasable: true
                     purchase_quantity:
-                      min_purchase: 1
-                      max_purchase: 5
+                      minimum: 1
+                      maximum: 5
+                      multiple_of: 1
                     rest_url: https://example-store.com/wp-json/cocart/v2/products/201
                   meta_data: []
                 page: 1
@@ -839,8 +841,9 @@ paths:
                       add_to_cart:
                         is_purchasable: true
                         purchase_quantity:
-                          min_purchase: 1
-                          max_purchase: 50
+                          minimum: 1
+                          maximum: 50
+                          multiple_of: 1
                         rest_url: https://example-store.com/wp-json/cocart/v2/cart/add-item?id=289&quantity=1&variation[attribute_size]=small&variation[attribute_color]=white
                     - id: 290
                       sku: PCT-2024-LG-BLK
@@ -882,8 +885,9 @@ paths:
                       add_to_cart:
                         is_purchasable: true
                         purchase_quantity:
-                          min_purchase: 1
-                          max_purchase: 35
+                          minimum: 1
+                          maximum: 35
+                          multiple_of: 1
                         rest_url: https://example-store.com/wp-json/cocart/v2/cart/add-item?id=290&quantity=1&variation[attribute_size]=large&variation[attribute_color]=black
                     grouped_products: []
                     stock:
@@ -1032,8 +1036,9 @@ paths:
                       has_options: false
                       is_purchasable: true
                       purchase_quantity:
-                        min_purchase: 1
-                        max_purchase: -1
+                        minimum: 1
+                        maximum: -1
+                        multiple_of: 1
                       rest_url: https://example-store.com/wp-json/cocart/v2/cart/add-item?id=204&quantity=1
                     meta_data: []
         '304':
@@ -2678,8 +2683,9 @@ paths:
                       description: Add Premium Cotton T-Shirt - Large, Navy Blue to your cart
                       is_purchasable: true
                       purchase_quantity:
-                        min_purchase: 1
-                        max_purchase: 45
+                        minimum: 1
+                        maximum: 45
+                        multiple_of: 1
                       rest_url: https://example-store.com/wp-json/cocart/v2/cart/add-item
                     meta_data:
                     - key: _fabric
@@ -2783,8 +2789,9 @@ paths:
                       description: Add Premium Cotton T-Shirt - Medium, White to your cart
                       is_purchasable: true
                       purchase_quantity:
-                        min_purchase: 1
-                        max_purchase: 78
+                        minimum: 1
+                        maximum: 78
+                        multiple_of: 1
                       rest_url: https://example-store.com/wp-json/cocart/v2/cart/add-item
                     meta_data:
                     - key: _fabric
@@ -2890,8 +2897,9 @@ paths:
                       description: Add variation to cart
                       is_purchasable: true
                       purchase_quantity:
-                        min_purchase: 1
-                        max_purchase: 3
+                        minimum: 1
+                        maximum: 3
+                        multiple_of: 1
                       rest_url: https://example-store.com/wp-json/cocart/v2/cart/add-item?id=211&quantity=1
                     meta_data: []
         '304':
@@ -3060,8 +3068,9 @@ paths:
                       description: Add Premium Cotton T-Shirt - Large, Navy Blue to your cart
                       is_purchasable: true
                       purchase_quantity:
-                        min_purchase: 1
-                        max_purchase: 45
+                        minimum: 1
+                        maximum: 45
+                        multiple_of: 1
                       rest_url: https://example-store.com/wp-json/cocart/v2/cart/add-item
                     meta_data:
                     - key: _fabric
@@ -3167,8 +3176,9 @@ paths:
                       description: Add variation to cart
                       is_purchasable: true
                       purchase_quantity:
-                        min_purchase: 1
-                        max_purchase: 3
+                        minimum: 1
+                        maximum: 3
+                        multiple_of: 1
                       rest_url: https://example-store.com/wp-json/cocart/v2/cart/add-item?id=211&quantity=1
                     meta_data: []
         '304':
@@ -3588,12 +3598,15 @@ components:
               type: object
               description: Purchase quantity limits
               properties:
-                min_purchase:
+                minimum:
                   type: integer
-                  description: Minimum purchase quantity
-                max_purchase:
+                  description: The minimum purchase amount required.
+                maximum:
                   type: integer
-                  description: Maximum purchase quantity allowed
+                  description: The maximum purchase amount allowed.
+                multiple_of:
+                  type: integer
+                  description: The quantity must be a multiple of this value.
             rest_url:
               type: string
               description: REST URL for adding this product to cart
@@ -4000,12 +4013,15 @@ components:
               type: object
               description: Purchase quantity limits
               properties:
-                min_purchase:
+                minimum:
                   type: integer
-                  description: Minimum purchase quantity
-                max_purchase:
+                  description: The minimum purchase amount required.
+                maximum:
                   type: integer
-                  description: Maximum purchase quantity allowed
+                  description: The maximum purchase amount allowed.
+                multiple_of:
+                  type: integer
+                  description: The quantity must be a multiple of this value.
             rest_url:
               type: string
               description: REST URL for adding this variation to cart

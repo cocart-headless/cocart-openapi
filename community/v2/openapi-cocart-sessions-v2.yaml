@@ -122,14 +122,14 @@ paths:
       security:
       - basicAuth: []
       - bearerAuth: []
-  /sessions/{id}:
+  /session/{session_key}:
     get:
       tags:
       - admin-sessions
       summary: Get cart session
       description: Gets a specific cart session by session key.
       parameters:
-      - name: id
+      - name: session_key
         in: path
         description: Unique session key for the cart session.
         required: true
@@ -195,7 +195,7 @@ paths:
       summary: Delete cart session
       description: Deletes a specific cart session by session key.
       parameters:
-      - name: id
+      - name: session_key
         in: path
         description: Unique session key for the cart session.
         required: true

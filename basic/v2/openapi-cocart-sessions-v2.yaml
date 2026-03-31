@@ -386,12 +386,18 @@ components:
             value:
               type: number
               description: Current quantity of the item in the cart.
-            min_purchase:
+            minimum:
               type: number
-              description: Minimum quantity that can be purchased.
-            max_purchase:
+              description: The minimum purchase amount required.
+            maximum:
               type: number
-              description: Maximum quantity that can be purchased.
+              description: The maximum purchase amount allowed. If -1 the item has an unlimited purchase amount.
+            multiple_of:
+              type: number
+              description: The quantity must be a multiple of this value.
+            editable:
+              type: boolean
+              description: Whether the quantity of the item is editable.
         totals:
           type: object
           description: Item totals.

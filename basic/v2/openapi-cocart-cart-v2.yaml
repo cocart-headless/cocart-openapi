@@ -125,8 +125,10 @@ paths:
                     price: $18.00
                     quantity:
                       value: 2
-                      min_purchase: 1
-                      max_purchase: -1
+                      minimum: 1
+                      maximum: -1
+                      multiple_of: 1
+                      editable: true
                     totals:
                       subtotal: 36.0
                       subtotal_tax: 3.6
@@ -154,8 +156,10 @@ paths:
                     price: $80.00
                     quantity:
                       value: 1
-                      min_purchase: 1
-                      max_purchase: 100
+                      minimum: 1
+                      maximum: 100
+                      multiple_of: 1
+                      editable: true
                     totals:
                       subtotal: 80.0
                       subtotal_tax: 8.0
@@ -440,8 +444,10 @@ paths:
                         price: $18.00
                         quantity:
                           value: 1
-                          min_purchase: 1
-                          max_purchase: -1
+                          minimum: 1
+                          maximum: -1
+                          multiple_of: 1
+                          editable: true
                         totals:
                           subtotal: 18.0
                           subtotal_tax: 0
@@ -500,8 +506,10 @@ paths:
                     price: $18.00
                     quantity:
                       value: 1
-                      min_purchase: 1
-                      max_purchase: -1
+                      minimum: 1
+                      maximum: -1
+                      multiple_of: 1
+                      editable: true
                     totals:
                       subtotal: 18.0
                       subtotal_tax: 1.8
@@ -682,8 +690,10 @@ paths:
                 price: $18.00
                 quantity:
                   value: 2
-                  min_purchase: 1
-                  max_purchase: -1
+                  minimum: 1
+                  maximum: -1
+                  multiple_of: 1
+                  editable: true
                 totals:
                   subtotal: 36.0
                   subtotal_tax: 3.6
@@ -993,8 +1003,10 @@ paths:
                   price: $18.00
                   quantity:
                     value: 2
-                    min_purchase: 1
-                    max_purchase: -1
+                    minimum: 1
+                    maximum: -1
+                    multiple_of: 1
+                    editable: true
                   totals:
                     subtotal: 36.0
                     subtotal_tax: 3.6
@@ -1022,8 +1034,10 @@ paths:
                   price: $80.00
                   quantity:
                     value: 1
-                    min_purchase: 1
-                    max_purchase: 100
+                    minimum: 1
+                    maximum: 100
+                    multiple_of: 1
+                    editable: true
                   totals:
                     subtotal: 80.0
                     subtotal_tax: 8.0
@@ -1554,12 +1568,18 @@ components:
             value:
               type: number
               description: Current quantity of the item in the cart.
-            min_purchase:
+            minimum:
               type: number
-              description: Minimum quantity that can be purchased.
-            max_purchase:
+              description: The minimum purchase amount required.
+            maximum:
               type: number
-              description: Maximum quantity that can be purchased.
+              description: The maximum purchase amount allowed. If -1 the item has an unlimited purchase amount.
+            multiple_of:
+              type: number
+              description: The quantity must be a multiple of this value.
+            editable:
+              type: boolean
+              description: Whether the quantity of the item is editable.
         totals:
           type: object
           description: Item totals.
