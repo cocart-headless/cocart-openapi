@@ -1,0 +1,38 @@
+name: OpenAPI spec update reminder
+
+on:
+  repository_dispatch:
+    types: [rest-api-changed]
+
+permissions:
+  issues: write
+
+jobs:
+  open-issue:
+    name: Open spec update issue
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { pr_number, pr_title, pr_url, source_repo, changed_files } = context.payload.client_payload;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Update OpenAPI specs — ${pr_title}`,
+              labels: ['spec-update'],
+              body: [
+                `A merged PR in [${source_repo}](https://github.com/${source_repo}) contains REST API v2 changes that may require OpenAPI spec updates.`,
+                ``,
+                `**Source PR:** [#${pr_number}: ${pr_title}](${pr_url})`,
+                ``,
+                `**Changed API files:**`,
+                `\`\`\``,
+                changed_files,
+                `\`\`\``,
+                ``,
+                `Please review the above files and update the relevant spec files under \`basic/v2/\`.`
+              ].join('\n')
+            });
