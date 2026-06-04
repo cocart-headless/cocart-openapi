@@ -90,6 +90,13 @@ paths:
             type: boolean
             default: true
           required: false
+        - name: formatted
+          in: query
+          description: Returns price values as a formatted string (e.g. "$18.00") when true. Defaults to false, returning raw numeric values (e.g. 1800).
+          schema:
+            type: boolean
+            default: false
+          required: false
         - $ref: "#/components/parameters/IfNoneMatch"
         - $ref: "#/components/parameters/SkipCache"
       responses:
@@ -145,16 +152,16 @@ paths:
                     id: 145
                     name: "Wireless Bluetooth Headphones"
                     title: "Wireless Bluetooth Headphones"
-                    price: "$18.00"
+                    price: "1800"
                     quantity:
                       value: 2
                       minimum: 1
                       maximum: -1
                     totals:
-                      subtotal: 36.00
-                      subtotal_tax: 3.60
-                      total: 36.00
-                      tax: 3.60
+                      subtotal: "3600"
+                      subtotal_tax: "360"
+                      total: "3600"
+                      tax: "360"
                     slug: "wireless-bluetooth-headphones"
                     meta:
                       product_type: "simple"
@@ -174,16 +181,16 @@ paths:
                     id: 289
                     name: "Premium Cotton T-Shirt - Large, Navy Blue"
                     title: "Premium Cotton T-Shirt"
-                    price: "$80.00"
+                    price: "8000"
                     quantity:
                       value: 1
                       minimum: 1
                       maximum: 100
                     totals:
-                      subtotal: 80.00
-                      subtotal_tax: 8.00
-                      total: 80.00
-                      tax: 8.00
+                      subtotal: "8000"
+                      subtotal_tax: "800"
+                      total: "8000"
+                      tax: "800"
                     slug: "premium-cotton-tshirt"
                     meta:
                       product_type: "variation"
@@ -205,6 +212,7 @@ paths:
                 coupons:
                   - coupon: "SUMMER20"
                     label: "Summer Sale 20% Off"
+                    discount_type: percent
                     saving: "$23.20"
                     saving_html: "<strong>$23.20</strong>"
                 needs_payment: true
@@ -247,41 +255,38 @@ paths:
                     total: 5.00
                     tax: 0.50
                 taxes:
-                  - rate_id: 1
-                    label: "Sales Tax"
-                    compound: false
-                    tax_total: "13.10"
-                    shipping_tax_total: "1.00"
+                  - label: "Sales Tax"
+                    total: "1310"
                 totals:
-                  subtotal: "116.00"
-                  subtotal_tax: "11.60"
-                  shipping_total: "10.00"
-                  shipping_tax: "1.00"
-                  shipping_taxes: [1.00]
-                  discount_total: "23.20"
-                  discount_tax: "0.00"
-                  cart_contents_total: "92.80"
-                  cart_contents_tax: "11.10"
-                  cart_contents_taxes: [11.10]
-                  fee_total: "5.00"
-                  fee_tax: "0.50"
-                  fee_taxes: [0.50]
-                  total: "119.40"
-                  total_tax: "13.60"
+                  subtotal: "11600"
+                  subtotal_tax: "1160"
+                  shipping_total: "1000"
+                  shipping_tax: "100"
+                  shipping_taxes: [100]
+                  discount_total: "2320"
+                  discount_tax: "0"
+                  cart_contents_total: "9280"
+                  cart_contents_tax: "1110"
+                  cart_contents_taxes: [1110]
+                  fee_total: "500"
+                  fee_tax: "50"
+                  fee_taxes: [50]
+                  total: "11940"
+                  total_tax: "1360"
                 removed_items: []
                 cross_sells:
                   - id: 312
                     product_name: "Wireless Charging Pad"
                     product_title: "Wireless Charging Pad"
-                    price: "$29.99"
-                    regular_price: "$39.99"
-                    sale_price: "$29.99"
+                    price: "2999"
+                    regular_price: "3999"
+                    sale_price: "2999"
                     product_image: "https://example-store.com/wp-content/uploads/2024/03/charging-pad.jpg"
                   - id: 445
                     product_name: "Phone Case - Universal"
                     product_title: "Phone Case - Universal"
-                    price: "$15.99"
-                    regular_price: "$15.99"
+                    price: "1599"
+                    regular_price: "1599"
                     sale_price: ""
                     product_image: "https://example-store.com/wp-content/uploads/2024/03/phone-case.jpg"
                 extensions: {}
@@ -358,6 +363,13 @@ paths:
       description: |
         Adds a single product item to the customer's cart.
       parameters:
+        - name: formatted
+          in: query
+          description: Returns price values as a formatted string (e.g. "$18.00") when true. Defaults to false, returning raw numeric values (e.g. 1800).
+          schema:
+            type: boolean
+            default: false
+          required: false
         - $ref: "#/components/parameters/SkipCache"
       requestBody:
         required: true
@@ -387,7 +399,7 @@ paths:
                   description: Set the customers billing phone number.
                   type: string
                 price:
-                  description: Overrides the general or sale price with a custom price for the item if set.
+                  description: Overrides the product price for this item. Only takes effect when the "Name Your Price" feature is enabled in CoCart → Settings → Features. Silently ignored otherwise.
                   type: string
                 return_item:
                   description: Returns the item details once added.
@@ -459,16 +471,16 @@ paths:
                         id: 145
                         name: "Wireless Bluetooth Headphones"
                         title: "Wireless Bluetooth Headphones"
-                        price: "$18.00"
+                        price: "1800"
                         quantity:
                           value: 1
                           minimum: 1
                           maximum: -1
                         totals:
-                          subtotal: 18.00
-                          subtotal_tax: 0
-                          total: 18.00
-                          tax: 0
+                          subtotal: "1800"
+                          subtotal_tax: "0"
+                          total: "1800"
+                          tax: "0"
                         slug: "wireless-bluetooth-headphones"
                         meta:
                           product_type: "simple"
@@ -496,16 +508,16 @@ paths:
                     fees: []
                     taxes: []
                     totals:
-                      subtotal: "18.00"
-                      subtotal_tax: "0.00"
-                      fee_total: "0.00"
-                      fee_tax: "0.00"
-                      discount_total: "0.00"
-                      discount_tax: "0.00"
-                      shipping_total: "0.00"
-                      shipping_tax: "0.00"
-                      total: "18.00"
-                      total_tax: "0.00"
+                      subtotal: "1800"
+                      subtotal_tax: "0"
+                      fee_total: "0"
+                      fee_tax: "0"
+                      discount_total: "0"
+                      discount_tax: "0"
+                      shipping_total: "0"
+                      shipping_tax: "0"
+                      total: "1800"
+                      total_tax: "0"
                     removed_items: []
                     cross_sells: []
                     notices:
@@ -519,16 +531,16 @@ paths:
                     id: 145
                     name: "Wireless Bluetooth Headphones"
                     title: "Wireless Bluetooth Headphones"
-                    price: "$18.00"
+                    price: "1800"
                     quantity:
                       value: 1
                       minimum: 1
                       maximum: -1
                     totals:
-                      subtotal: 18.00
-                      subtotal_tax: 1.80
-                      total: 18.00
-                      tax: 1.80
+                      subtotal: "1800"
+                      subtotal_tax: "180"
+                      total: "1800"
+                      tax: "180"
                     slug: "wireless-bluetooth-headphones"
                     meta:
                       product_type: "simple"
@@ -585,6 +597,13 @@ paths:
       description: |
         Adds multiple product items to the customer's cart in a single request.
       parameters:
+        - name: formatted
+          in: query
+          description: Returns price values as a formatted string (e.g. "$18.00") when true. Defaults to false, returning raw numeric values (e.g. 1800).
+          schema:
+            type: boolean
+            default: false
+          required: false
         - $ref: "#/components/parameters/SkipCache"
       requestBody:
         required: true
@@ -684,6 +703,13 @@ paths:
           schema:
             type: string
             pattern: '^[\w-]{32}$'
+        - name: formatted
+          in: query
+          description: Returns price values as a formatted string (e.g. "$18.00") when true. Defaults to false, returning raw numeric values (e.g. 1800).
+          schema:
+            type: boolean
+            default: false
+          required: false
         - $ref: "#/components/parameters/IfNoneMatch"
         - $ref: "#/components/parameters/SkipCache"
       responses:
@@ -703,16 +729,16 @@ paths:
                 id: 145
                 name: "Wireless Bluetooth Headphones"
                 title: "Wireless Bluetooth Headphones"
-                price: "$18.00"
+                price: "1800"
                 quantity:
                   value: 2
                   minimum: 1
                   maximum: -1
                 totals:
-                  subtotal: 36.00
-                  subtotal_tax: 3.60
-                  total: 36.00
-                  tax: 3.60
+                  subtotal: "3600"
+                  subtotal_tax: "360"
+                  total: "3600"
+                  tax: "360"
                 slug: "wireless-bluetooth-headphones"
                 meta:
                   product_type: "simple"
@@ -772,6 +798,13 @@ paths:
           schema:
             type: string
             pattern: '^[\w-]{32}$'
+        - name: formatted
+          in: query
+          description: Returns price values as a formatted string (e.g. "$18.00") when true. Defaults to false, returning raw numeric values (e.g. 1800).
+          schema:
+            type: boolean
+            default: false
+          required: false
         - $ref: "#/components/parameters/SkipCache"
       requestBody:
         required: true
@@ -858,6 +891,13 @@ paths:
           schema:
             type: string
             pattern: '^[\w-]{32}$'
+        - name: formatted
+          in: query
+          description: Returns price values as a formatted string (e.g. "$18.00") when true. Defaults to false, returning raw numeric values (e.g. 1800).
+          schema:
+            type: boolean
+            default: false
+          required: false
         - name: return_item
           in: query
           description: Returns the item details once restored.
@@ -929,6 +969,13 @@ paths:
           schema:
             type: string
             pattern: '^[\w-]{32}$'
+        - name: formatted
+          in: query
+          description: Returns price values as a formatted string (e.g. "$18.00") when true. Defaults to false, returning raw numeric values (e.g. 1800).
+          schema:
+            type: boolean
+            default: false
+          required: false
         - name: return_status
           in: query
           description: Returns a message after removing item from cart.
@@ -996,6 +1043,13 @@ paths:
             type: boolean
             default: true
           required: false
+        - name: formatted
+          in: query
+          description: Returns price values as a formatted string (e.g. "$18.00") when true. Defaults to false, returning raw numeric values (e.g. 1800).
+          schema:
+            type: boolean
+            default: false
+          required: false
         - $ref: "#/components/parameters/IfNoneMatch"
         - $ref: "#/components/parameters/SkipCache"
       responses:
@@ -1018,16 +1072,16 @@ paths:
                   id: 145
                   name: "Wireless Bluetooth Headphones"
                   title: "Wireless Bluetooth Headphones"
-                  price: "$18.00"
+                  price: "1800"
                   quantity:
                     value: 2
                     minimum: 1
                     maximum: -1
                   totals:
-                    subtotal: 36.00
-                    subtotal_tax: 3.60
-                    total: 36.00
-                    tax: 3.60
+                    subtotal: "3600"
+                    subtotal_tax: "360"
+                    total: "3600"
+                    tax: "360"
                   slug: "wireless-bluetooth-headphones"
                   meta:
                     product_type: "simple"
@@ -1047,16 +1101,16 @@ paths:
                   id: 289
                   name: "Premium Cotton T-Shirt - Large, Navy Blue"
                   title: "Premium Cotton T-Shirt"
-                  price: "$80.00"
+                  price: "8000"
                   quantity:
                     value: 1
                     minimum: 1
                     maximum: 100
                   totals:
-                    subtotal: 80.00
-                    subtotal_tax: 8.00
-                    total: 80.00
-                    tax: 8.00
+                    subtotal: "8000"
+                    subtotal_tax: "800"
+                    total: "8000"
+                    tax: "800"
                   slug: "premium-cotton-tshirt"
                   meta:
                     product_type: "variation"
@@ -1168,6 +1222,13 @@ paths:
       description: |
         Removes all items from the customer's cart.
       parameters:
+        - name: formatted
+          in: query
+          description: Returns price values as a formatted string (e.g. "$18.00") when true. Defaults to false, returning raw numeric values (e.g. 1800).
+          schema:
+            type: boolean
+            default: false
+          required: false
         - $ref: "#/components/parameters/SkipCache"
       requestBody:
         required: false
@@ -1221,85 +1282,118 @@ paths:
         - cart
       summary: Update cart
       description: |
-        Updates multiple cart items or properties at once.
+        Updates the cart using a registered callback. Two built-in callbacks are available:
+
+        - **`update-cart`** — Bulk-update item quantities. Pass a `quantity` map of `item_key` to new quantity.
+        - **`update-customer`** — Update customer billing and/or shipping address details.
+
+        Select the appropriate schema tab below based on which callback you are using.
       parameters:
+        - name: formatted
+          in: query
+          description: Returns price values as a formatted string (e.g. "$18.00") when true. Defaults to false, returning raw numeric values (e.g. 1800).
+          schema:
+            type: boolean
+            default: false
+          required: false
         - $ref: "#/components/parameters/SkipCache"
       requestBody:
         required: false
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                namespace:
-                  description: Registered callback namespace (e.g. "update-customer").
-                  type: string
-                data:
-                  description: Additional data passed to callback.
+              oneOf:
+                - title: update-cart
+                  description: Bulk-update item quantities in the cart.
                   type: object
-                first_name:
-                  description: Billing first name.
-                  type: string
-                last_name:
-                  description: Billing last name.
-                  type: string
-                company:
-                  description: Billing company.
-                  type: string
-                address_1:
-                  description: Billing address line 1.
-                  type: string
-                address_2:
-                  description: Billing address line 2.
-                  type: string
-                city:
-                  description: Billing city.
-                  type: string
-                state:
-                  description: Billing state.
-                  type: string
-                postcode:
-                  description: Billing postcode/zip.
-                  type: string
-                country:
-                  description: Billing country (ISO 3166-1 alpha-2).
-                  type: string
-                email:
-                  description: Billing email.
-                  type: string
-                  format: email
-                phone:
-                  description: Billing phone.
-                  type: string
-                s_first_name:
-                  description: Shipping first name.
-                  type: string
-                s_last_name:
-                  description: Shipping last name.
-                  type: string
-                s_company:
-                  description: Shipping company.
-                  type: string
-                s_address_1:
-                  description: Shipping address line 1.
-                  type: string
-                s_address_2:
-                  description: Shipping address line 2.
-                  type: string
-                s_city:
-                  description: Shipping city.
-                  type: string
-                s_state:
-                  description: Shipping state.
-                  type: string
-                s_postcode:
-                  description: Shipping postcode/zip.
-                  type: string
-                s_country:
-                  description: Shipping country (ISO 3166-1 alpha-2).
-                  type: string
-              required:
-                - namespace
+                  properties:
+                    namespace:
+                      description: Must be "update-cart".
+                      type: string
+                      enum:
+                        - update-cart
+                    quantity:
+                      description: Map of item_key to new quantity. Items not listed are unchanged. Setting a quantity to 0 removes the item.
+                      type: object
+                      additionalProperties:
+                        type: string
+                      example:
+                        d6b3e8e5a1b0c6e4f2a3b1d8c5e6f9a2: "3"
+                        f3a8b2c6d5e9f1a4b7c0d3e6f9a2b5c8: "1"
+                  required:
+                    - namespace
+                - title: update-customer
+                  description: Update customer billing and/or shipping address details.
+                  type: object
+                  properties:
+                    namespace:
+                      description: Must be "update-customer".
+                      type: string
+                      enum:
+                        - update-customer
+                    first_name:
+                      description: Customers billing first name.
+                      type: string
+                    last_name:
+                      description: Customers billing last name.
+                      type: string
+                    company:
+                      description: Customers billing company name.
+                      type: string
+                    address_1:
+                      description: Customers billing address line 1.
+                      type: string
+                    address_2:
+                      description: Customers billing address line 2.
+                      type: string
+                    city:
+                      description: Customers billing city.
+                      type: string
+                    state:
+                      description: Customers billing state.
+                      type: string
+                    postcode:
+                      description: Customers billing postcode or zip code.
+                      type: string
+                    country:
+                      description: Customers billing country code (ISO 3166-1 alpha-2).
+                      type: string
+                    email:
+                      description: Customers billing email address.
+                      type: string
+                      format: email
+                    phone:
+                      description: Customers billing phone number.
+                      type: string
+                    s_first_name:
+                      description: Customers shipping first name.
+                      type: string
+                    s_last_name:
+                      description: Customers shipping last name.
+                      type: string
+                    s_company:
+                      description: Customers shipping company name.
+                      type: string
+                    s_address_1:
+                      description: Customers shipping address line 1.
+                      type: string
+                    s_address_2:
+                      description: Customers shipping address line 2.
+                      type: string
+                    s_city:
+                      description: Customers shipping city.
+                      type: string
+                    s_state:
+                      description: Customers shipping state.
+                      type: string
+                    s_postcode:
+                      description: Customers shipping postcode or zip code.
+                      type: string
+                    s_country:
+                      description: Customers shipping country code (ISO 3166-1 alpha-2).
+                      type: string
+                  required:
+                    - namespace
       responses:
         "200":
           description: Cart updated successfully.
@@ -1334,7 +1428,14 @@ paths:
       parameters:
         - name: html
           in: query
-          description: Returns the totals pre-formatted.
+          description: Returns the totals pre-formatted as HTML strings (includes currency symbol).
+          schema:
+            type: boolean
+            default: false
+          required: false
+        - name: formatted
+          in: query
+          description: Returns price values as a formatted string (e.g. "$18.00") when true. Defaults to false, returning raw numeric values (e.g. 1800).
           schema:
             type: boolean
             default: false
@@ -1354,21 +1455,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/TotalsResponse"
               example:
-                subtotal: "116.00"
-                subtotal_tax: "11.60"
-                shipping_total: "10.00"
-                shipping_tax: "1.00"
-                shipping_taxes: [1.00]
-                discount_total: "23.20"
-                discount_tax: "0.00"
-                cart_contents_total: "92.80"
-                cart_contents_tax: "11.10"
-                cart_contents_taxes: [11.10]
-                fee_total: "5.00"
-                fee_tax: "0.50"
-                fee_taxes: [0.50]
-                total: "119.40"
-                total_tax: "13.60"
+                subtotal: "11600"
+                subtotal_tax: "1160"
+                shipping_total: "1000"
+                shipping_tax: "100"
+                shipping_taxes: [100]
+                discount_total: "2320"
+                discount_tax: "0"
+                cart_contents_total: "9280"
+                cart_contents_tax: "1110"
+                cart_contents_taxes: [1110]
+                fee_total: "500"
+                fee_tax: "50"
+                fee_taxes: [50]
+                total: "11940"
+                total_tax: "1360"
         "304":
           description: Not Modified - resource has not changed since last request.
           headers:
@@ -1396,6 +1497,13 @@ paths:
       description: |
         Calculates the cart totals including taxes, shipping, and discounts.
       parameters:
+        - name: formatted
+          in: query
+          description: Returns price values as a formatted string (e.g. "$18.00") when true. Defaults to false, returning raw numeric values (e.g. 1800).
+          schema:
+            type: boolean
+            default: false
+          required: false
         - $ref: "#/components/parameters/SkipCache"
       requestBody:
         required: false
@@ -5067,7 +5175,7 @@ components:
           additionalProperties: true
         extensions:
           type: object
-          description: Additional data from extensions.
+          description: Additional data added by third-party extensions via the `cocart_cart_extensions` filter. Only present when at least one extension hooks this filter.
           additionalProperties: true
 
     CartItem:
@@ -5087,7 +5195,7 @@ components:
           description: Product title.
         price:
           type: string
-          description: Current product price.
+          description: Current product price. Raw numeric value (e.g. "1800") by default; formatted string (e.g. "$18.00") when the `formatted` query parameter is true.
         quantity:
           type: object
           description: Quantity information for this item.
@@ -5109,19 +5217,19 @@ components:
               description: Whether the quantity of the item is editable.
         totals:
           type: object
-          description: Item totals.
+          description: Item totals. All values are raw numeric strings (e.g. "3600") by default; formatted strings (e.g. "$36.00") when `formatted=true`.
           properties:
             subtotal:
-              type: number
+              type: string
               description: Line subtotal (before discounts).
             subtotal_tax:
-              type: number
+              type: string
               description: Line subtotal tax.
             total:
-              type: number
+              type: string
               description: Line total (after discounts).
             tax:
-              type: number
+              type: string
               description: Line total tax.
         slug:
           type: string
@@ -5175,6 +5283,10 @@ components:
         featured_image:
           type: string
           description: Product featured image URL.
+        extensions:
+          type: object
+          description: Additional data added by third-party extensions via the `cocart_cart_item_extensions` filter. Empty object when no extensions hook this filter.
+          additionalProperties: true
 
     Currency:
       type: object
@@ -5324,6 +5436,7 @@ components:
 
     CartTotals:
       type: object
+      description: All monetary values are raw numeric strings (e.g. "1800") by default. Pass `formatted=true` to receive formatted strings (e.g. "$18.00").
       properties:
         subtotal:
           type: string
@@ -5392,29 +5505,42 @@ components:
 
     CartTax:
       type: object
+      description: |
+        Tax entry. Structure depends on the WooCommerce tax display setting:
+        - Non-itemized: `{ label, total }` — a single combined tax line.
+        - Itemized: `{ name, price }` — one entry per tax rate.
       properties:
-        rate_id:
-          type: integer
         label:
           type: string
-        compound:
-          type: boolean
-        tax_total:
+          description: Tax label (non-itemized mode).
+        total:
           type: string
-        shipping_tax_total:
+          description: Combined tax total as raw numeric string, e.g. "1310" (non-itemized mode). Formatted string when `formatted=true`.
+        name:
           type: string
+          description: Tax rate name (itemized mode).
+        price:
+          type: string
+          description: Tax amount as raw numeric string (itemized mode). Formatted string when `formatted=true`.
 
     AppliedCoupon:
       type: object
       properties:
         coupon:
           type: string
+          description: Coupon code.
         label:
           type: string
+          description: Human-readable coupon label.
+        discount_type:
+          type: string
+          description: Type of discount applied (e.g. percent, fixed_cart, fixed_product).
         saving:
           type: string
+          description: Amount saved by this coupon, formatted without HTML.
         saving_html:
           type: string
+          description: Amount saved by this coupon, formatted as HTML.
 
     RemovedItem:
       type: object
@@ -5439,10 +5565,13 @@ components:
           type: string
         price:
           type: string
+          description: Current price. Raw numeric string (e.g. "1800") by default; formatted string (e.g. "$18.00") when `formatted=true`.
         regular_price:
           type: string
+          description: Regular price. Raw numeric string by default; formatted when `formatted=true`.
         sale_price:
           type: string
+          description: Sale price if on sale, otherwise empty string. Raw numeric string by default; formatted when `formatted=true`.
         product_image:
           type: string
 
@@ -6371,4 +6500,10 @@ components:
               type: object
               description: Parameter-specific error details.
               additionalProperties: true
+            field:
+              type: string
+              description: The parameter name that failed validation. Present on billing/shipping field validation errors from the update-customer callback.
+            value:
+              type: string
+              description: The invalid value that was submitted. Present alongside `field` on validation errors.
           additionalProperties: true
