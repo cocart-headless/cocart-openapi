@@ -143,16 +143,16 @@ paths:
                     id: 145
                     name: "Wireless Bluetooth Headphones"
                     title: "Wireless Bluetooth Headphones"
-                    price: "$18.00"
+                    price: "1800"
                     quantity:
                       value: 2
                       min_purchase: 1
                       max_purchase: -1
                     totals:
-                      subtotal: 36.00
-                      subtotal_tax: 3.60
-                      total: 36.00
-                      tax: 3.60
+                      subtotal: "3600"
+                      subtotal_tax: "360"
+                      total: "3600"
+                      tax: "360"
                     slug: "wireless-bluetooth-headphones"
                     meta:
                       product_type: "simple"
@@ -172,16 +172,16 @@ paths:
                     id: 289
                     name: "Premium Cotton T-Shirt - Large, Navy Blue"
                     title: "Premium Cotton T-Shirt"
-                    price: "$80.00"
+                    price: "8000"
                     quantity:
                       value: 1
                       min_purchase: 1
                       max_purchase: 100
                     totals:
-                      subtotal: 80.00
-                      subtotal_tax: 8.00
-                      total: 80.00
-                      tax: 8.00
+                      subtotal: "8000"
+                      subtotal_tax: "800"
+                      total: "8000"
+                      tax: "800"
                     slug: "premium-cotton-tshirt"
                     meta:
                       product_type: "variation"
@@ -203,7 +203,8 @@ paths:
                 coupons:
                   - coupon: "SUMMER20"
                     label: "Summer Sale 20% Off"
-                    saving: "$23.20"
+                    discount_type: percent
+                    saving: "2320"
                     saving_html: "<strong>$23.20</strong>"
                 needs_payment: true
                 needs_shipping: true
@@ -239,47 +240,40 @@ paths:
                       formatted_destination: "Beverly Hills, CA 90210, US"
                 fees:
                   - name: "Gift Wrapping"
-                    amount: 5.00
-                    taxable: true
-                    tax_class: "standard"
-                    total: 5.00
-                    tax: 0.50
+                    fee: "500"
                 taxes:
-                  - rate_id: 1
-                    label: "Sales Tax"
-                    compound: false
-                    tax_total: "13.10"
-                    shipping_tax_total: "1.00"
+                  - label: "Sales Tax"
+                    total: "1310"
                 totals:
-                  subtotal: "116.00"
-                  subtotal_tax: "11.60"
-                  shipping_total: "10.00"
-                  shipping_tax: "1.00"
-                  shipping_taxes: [1.00]
-                  discount_total: "23.20"
-                  discount_tax: "0.00"
-                  cart_contents_total: "92.80"
-                  cart_contents_tax: "11.10"
-                  cart_contents_taxes: [11.10]
-                  fee_total: "5.00"
-                  fee_tax: "0.50"
-                  fee_taxes: [0.50]
-                  total: "119.40"
-                  total_tax: "13.60"
+                  subtotal: "11600"
+                  subtotal_tax: "1160"
+                  shipping_total: "1000"
+                  shipping_tax: "100"
+                  shipping_taxes: [100]
+                  discount_total: "2320"
+                  discount_tax: "0"
+                  cart_contents_total: "9280"
+                  cart_contents_tax: "1110"
+                  cart_contents_taxes: [1110]
+                  fee_total: "500"
+                  fee_tax: "50"
+                  fee_taxes: [50]
+                  total: "11940"
+                  total_tax: "1360"
                 removed_items: []
                 cross_sells:
                   - id: 312
                     product_name: "Wireless Charging Pad"
                     product_title: "Wireless Charging Pad"
-                    price: "$29.99"
-                    regular_price: "$39.99"
-                    sale_price: "$29.99"
+                    price: "2999"
+                    regular_price: "3999"
+                    sale_price: "2999"
                     product_image: "https://example-store.com/wp-content/uploads/2024/03/charging-pad.jpg"
                   - id: 445
                     product_name: "Phone Case - Universal"
                     product_title: "Phone Case - Universal"
-                    price: "$15.99"
-                    regular_price: "$15.99"
+                    price: "1599"
+                    regular_price: "1599"
                     sale_price: ""
                     product_image: "https://example-store.com/wp-content/uploads/2024/03/phone-case.jpg"
                 extensions: {}
@@ -350,7 +344,7 @@ paths:
                   description: Set the customers billing phone number.
                   type: string
                 price:
-                  description: Overrides the general or sale price with a custom price for the item if set.
+                  description: Overrides the product price for this item. Only takes effect when opted in via the `cocart_does_product_allow_price_change` filter (defaults to false since v4.9.0). Silently ignored otherwise.
                   type: string
                 return_item:
                   description: Returns the item details once added.
@@ -422,16 +416,16 @@ paths:
                         id: 145
                         name: "Wireless Bluetooth Headphones"
                         title: "Wireless Bluetooth Headphones"
-                        price: "$18.00"
+                        price: "1800"
                         quantity:
                           value: 1
                           min_purchase: 1
                           max_purchase: -1
                         totals:
-                          subtotal: 18.00
-                          subtotal_tax: 0
-                          total: 18.00
-                          tax: 0
+                          subtotal: "1800"
+                          subtotal_tax: "0"
+                          total: "1800"
+                          tax: "0"
                         slug: "wireless-bluetooth-headphones"
                         meta:
                           product_type: "simple"
@@ -459,16 +453,16 @@ paths:
                     fees: []
                     taxes: []
                     totals:
-                      subtotal: "18.00"
-                      subtotal_tax: "0.00"
-                      fee_total: "0.00"
-                      fee_tax: "0.00"
-                      discount_total: "0.00"
-                      discount_tax: "0.00"
-                      shipping_total: "0.00"
-                      shipping_tax: "0.00"
-                      total: "18.00"
-                      total_tax: "0.00"
+                      subtotal: "1800"
+                      subtotal_tax: "0"
+                      fee_total: "0"
+                      fee_tax: "0"
+                      discount_total: "0"
+                      discount_tax: "0"
+                      shipping_total: "0"
+                      shipping_tax: "0"
+                      total: "1800"
+                      total_tax: "0"
                     removed_items: []
                     cross_sells: []
                     notices:
@@ -482,16 +476,16 @@ paths:
                     id: 145
                     name: "Wireless Bluetooth Headphones"
                     title: "Wireless Bluetooth Headphones"
-                    price: "$18.00"
+                    price: "1800"
                     quantity:
                       value: 1
                       min_purchase: 1
                       max_purchase: -1
                     totals:
-                      subtotal: 18.00
-                      subtotal_tax: 1.80
-                      total: 18.00
-                      tax: 1.80
+                      subtotal: "1800"
+                      subtotal_tax: "180"
+                      total: "1800"
+                      tax: "180"
                     slug: "wireless-bluetooth-headphones"
                     meta:
                       product_type: "simple"
@@ -650,16 +644,16 @@ paths:
                 id: 145
                 name: "Wireless Bluetooth Headphones"
                 title: "Wireless Bluetooth Headphones"
-                price: "$18.00"
+                price: "1800"
                 quantity:
                   value: 2
                   min_purchase: 1
                   max_purchase: -1
                 totals:
-                  subtotal: 36.00
-                  subtotal_tax: 3.60
-                  total: 36.00
-                  tax: 3.60
+                  subtotal: "3600"
+                  subtotal_tax: "360"
+                  total: "3600"
+                  tax: "360"
                 slug: "wireless-bluetooth-headphones"
                 meta:
                   product_type: "simple"
@@ -956,16 +950,16 @@ paths:
                   id: 145
                   name: "Wireless Bluetooth Headphones"
                   title: "Wireless Bluetooth Headphones"
-                  price: "$18.00"
+                  price: "1800"
                   quantity:
                     value: 2
                     min_purchase: 1
                     max_purchase: -1
                   totals:
-                    subtotal: 36.00
-                    subtotal_tax: 3.60
-                    total: 36.00
-                    tax: 3.60
+                    subtotal: "3600"
+                    subtotal_tax: "360"
+                    total: "3600"
+                    tax: "360"
                   slug: "wireless-bluetooth-headphones"
                   meta:
                     product_type: "simple"
@@ -985,16 +979,16 @@ paths:
                   id: 289
                   name: "Premium Cotton T-Shirt - Large, Navy Blue"
                   title: "Premium Cotton T-Shirt"
-                  price: "$80.00"
+                  price: "8000"
                   quantity:
                     value: 1
                     min_purchase: 1
                     max_purchase: 100
                   totals:
-                    subtotal: 80.00
-                    subtotal_tax: 8.00
-                    total: 80.00
-                    tax: 8.00
+                    subtotal: "8000"
+                    subtotal_tax: "800"
+                    total: "8000"
+                    tax: "800"
                   slug: "premium-cotton-tshirt"
                   meta:
                     product_type: "variation"
@@ -1152,7 +1146,12 @@ paths:
         - cart
       summary: Update cart
       description: |
-        Updates multiple cart items or properties at once.
+        Updates the cart using a registered callback. Two built-in callbacks are available:
+
+        - **`update-cart`** — Bulk-update item quantities. Pass a `quantity` map of `item_key` to new quantity.
+        - **`update-customer`** — Update customer billing and/or shipping address details.
+
+        Select the appropriate schema tab below based on which callback you are using.
       parameters:
         - $ref: "#/components/parameters/SkipCache"
       requestBody:
@@ -1160,24 +1159,98 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                namespace:
-                  description: Namespace used to ensure the data in the request is routed appropriately.
-                  type: string
-                items:
-                  description: Items to update in the cart.
+              oneOf:
+                - title: update-cart
+                  description: Bulk-update item quantities in the cart.
                   type: object
-                  additionalProperties:
-                    type: object
-                    properties:
-                      quantity:
+                  properties:
+                    namespace:
+                      description: Must be "update-cart".
+                      type: string
+                      enum:
+                        - update-cart
+                    quantity:
+                      description: Map of item_key to new quantity. Items not listed are unchanged. Setting a quantity to 0 removes the item.
+                      type: object
+                      additionalProperties:
                         type: string
-                data:
-                  description: Additional data to pass.
+                      example:
+                        d6b3e8e5a1b0c6e4f2a3b1d8c5e6f9a2: "3"
+                        f3a8b2c6d5e9f1a4b7c0d3e6f9a2b5c8: "1"
+                  required:
+                    - namespace
+                - title: update-customer
+                  description: Update customer billing and/or shipping address details.
                   type: object
-              required:
-                - namespace
+                  properties:
+                    namespace:
+                      description: Must be "update-customer".
+                      type: string
+                      enum:
+                        - update-customer
+                    first_name:
+                      description: Customers billing first name.
+                      type: string
+                    last_name:
+                      description: Customers billing last name.
+                      type: string
+                    company:
+                      description: Customers billing company name.
+                      type: string
+                    address_1:
+                      description: Customers billing address line 1.
+                      type: string
+                    address_2:
+                      description: Customers billing address line 2.
+                      type: string
+                    city:
+                      description: Customers billing city.
+                      type: string
+                    state:
+                      description: Customers billing state.
+                      type: string
+                    postcode:
+                      description: Customers billing postcode or zip code.
+                      type: string
+                    country:
+                      description: Customers billing country code (ISO 3166-1 alpha-2).
+                      type: string
+                    email:
+                      description: Customers billing email address.
+                      type: string
+                      format: email
+                    phone:
+                      description: Customers billing phone number.
+                      type: string
+                    s_first_name:
+                      description: Customers shipping first name.
+                      type: string
+                    s_last_name:
+                      description: Customers shipping last name.
+                      type: string
+                    s_company:
+                      description: Customers shipping company name.
+                      type: string
+                    s_address_1:
+                      description: Customers shipping address line 1.
+                      type: string
+                    s_address_2:
+                      description: Customers shipping address line 2.
+                      type: string
+                    s_city:
+                      description: Customers shipping city.
+                      type: string
+                    s_state:
+                      description: Customers shipping state.
+                      type: string
+                    s_postcode:
+                      description: Customers shipping postcode or zip code.
+                      type: string
+                    s_country:
+                      description: Customers shipping country code (ISO 3166-1 alpha-2).
+                      type: string
+                  required:
+                    - namespace
       responses:
         "200":
           description: Cart updated successfully.
@@ -1232,21 +1305,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/TotalsResponse"
               example:
-                subtotal: "116.00"
-                subtotal_tax: "11.60"
-                shipping_total: "10.00"
-                shipping_tax: "1.00"
-                shipping_taxes: [1.00]
-                discount_total: "23.20"
-                discount_tax: "0.00"
-                cart_contents_total: "92.80"
-                cart_contents_tax: "11.10"
-                cart_contents_taxes: [11.10]
-                fee_total: "5.00"
-                fee_tax: "0.50"
-                fee_taxes: [0.50]
-                total: "119.40"
-                total_tax: "13.60"
+                subtotal: "11600"
+                subtotal_tax: "1160"
+                shipping_total: "1000"
+                shipping_tax: "100"
+                shipping_taxes: [100]
+                discount_total: "2320"
+                discount_tax: "0"
+                cart_contents_total: "9280"
+                cart_contents_tax: "1110"
+                cart_contents_taxes: [1110]
+                fee_total: "500"
+                fee_tax: "50"
+                fee_taxes: [50]
+                total: "11940"
+                total_tax: "1360"
         "304":
           description: Not Modified - resource has not changed since last request.
           headers:
@@ -4298,7 +4371,7 @@ components:
           additionalProperties: true
         extensions:
           type: object
-          description: Additional data from extensions.
+          description: Additional extension data. Always present as an empty object `{}` unless a third-party plugin extends the cart response.
           additionalProperties: true
 
     CartItem:
@@ -4318,7 +4391,7 @@ components:
           description: Product title.
         price:
           type: string
-          description: Current product price.
+          description: Current product price as a raw integer string in the currency's smallest unit (e.g. "1800" = $18.00).
         quantity:
           type: object
           description: Quantity information for this item.
@@ -4334,19 +4407,19 @@ components:
               description: Maximum quantity that can be purchased.
         totals:
           type: object
-          description: Item totals.
+          description: Item totals. All values are raw integer strings in the currency's smallest unit (e.g. "3600" = $36.00).
           properties:
             subtotal:
-              type: number
+              type: string
               description: Line subtotal (before discounts).
             subtotal_tax:
-              type: number
+              type: string
               description: Line subtotal tax.
             total:
-              type: number
+              type: string
               description: Line total (after discounts).
             tax:
-              type: number
+              type: string
               description: Line total tax.
         slug:
           type: string
@@ -4549,6 +4622,7 @@ components:
 
     CartTotals:
       type: object
+      description: All monetary values are raw integer strings in the currency's smallest unit (e.g. "11600" = $116.00).
       properties:
         subtotal:
           type: string
@@ -4604,42 +4678,49 @@ components:
       properties:
         name:
           type: string
-        amount:
-          type: number
-        taxable:
-          type: boolean
-        tax_class:
+          description: Fee name.
+        fee:
           type: string
-        total:
-          type: number
-        tax:
-          type: number
+          description: Fee amount as a raw integer string in the currency's smallest unit (e.g. "500" = $5.00).
 
     CartTax:
       type: object
+      description: |
+        Tax entry. Structure depends on the WooCommerce tax display setting:
+        - Non-itemized: `{ label, total }` — a single combined tax line.
+        - Itemized: `{ name, price }` — one entry per tax rate.
       properties:
-        rate_id:
-          type: integer
         label:
           type: string
-        compound:
-          type: boolean
-        tax_total:
+          description: Tax label (non-itemized mode).
+        total:
           type: string
-        shipping_tax_total:
+          description: Combined tax total as raw integer string, e.g. "1310" = $13.10 (non-itemized mode).
+        name:
           type: string
+          description: Tax rate name (itemized mode).
+        price:
+          type: string
+          description: Tax amount as raw integer string (itemized mode).
 
     AppliedCoupon:
       type: object
       properties:
         coupon:
           type: string
+          description: Coupon code.
         label:
           type: string
+          description: Human-readable coupon label.
+        discount_type:
+          type: string
+          description: Type of discount applied (e.g. percent, fixed_cart, fixed_product).
         saving:
           type: string
+          description: Amount saved by this coupon, formatted without HTML.
         saving_html:
           type: string
+          description: Amount saved by this coupon, formatted as HTML.
 
     RemovedItem:
       type: object
@@ -4664,10 +4745,13 @@ components:
           type: string
         price:
           type: string
+          description: Current price as a raw integer string in the currency's smallest unit (e.g. "2999" = $29.99).
         regular_price:
           type: string
+          description: Regular price as a raw integer string.
         sale_price:
           type: string
+          description: Sale price as a raw integer string, or empty string if not on sale.
         product_image:
           type: string
 
