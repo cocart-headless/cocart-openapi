@@ -34,8 +34,8 @@ Stable community release specifications, reflecting CoCart **v4.9.0**.
 
 ### CoCart Community Edition — API v1
 
-> [!IMPORTANT] Not longer supported.
-Legacy v1 API specifications, reflecting CoCart **v4.9.0**.
+> [!IMPORTANT]
+> No longer supported. Legacy v1 API specifications, reflecting CoCart **v4.9.0**.
 
 | File | Description | Endpoints |
 |------|-------------|-----------|
