@@ -6,13 +6,11 @@ Specifications are organized by plugin and API version. Each plugin directory co
 
 ## Plugins
 
-### CoCart (Core)
-
 The core CoCart plugin provides cart management, product browsing, session administration, authentication, and store information endpoints.
 
-#### Basic Edition — API v2 (Latest)
+### CoCart Basic Edition — API v2 (Latest)
 
-The latest specifications, reflecting CoCart **v5.0.0**.
+The latest specifications, reflecting CoCart Basic **v5.0.0**.
 
 | File | Description | Endpoints |
 |------|-------------|-----------|
@@ -22,7 +20,7 @@ The latest specifications, reflecting CoCart **v5.0.0**.
 | [Sessions](basic/v2/openapi-cocart-sessions-v2.yaml) | Admin cart session management | 3 paths |
 | [Others](basic/v2/openapi-cocart-others-v2.yaml) | Login, logout, and store information | 3 paths |
 
-#### Community Edition — API v2
+### CoCart Community Edition — API v2
 
 Stable community release specifications, reflecting CoCart **v4.9.0**.
 
@@ -34,7 +32,7 @@ Stable community release specifications, reflecting CoCart **v4.9.0**.
 | [Sessions](community/v2/openapi-cocart-sessions-v2.yaml) | Admin cart session management | 2 paths |
 | [Others](community/v2/openapi-cocart-others-v2.yaml) | Login, logout, and store information | 3 paths |
 
-#### Community Edition — API v1
+### CoCart Community Edition — API v1
 
 > [!IMPORTANT] Not longer supported.
 Legacy v1 API specifications, reflecting CoCart **v4.9.0**.
@@ -46,7 +44,7 @@ Legacy v1 API specifications, reflecting CoCart **v4.9.0**.
 
 ### CoCart Plus
 
-An add-on plugin that extends the CoCart with support for coupons, fees, shipping methods, payment methods, granular totals breakdowns, and more.
+An add-on plugin that extends CoCart with support for coupons, fees, shipping methods, payment methods, granular totals breakdowns, and more.
 
 #### Plus — API v1
 
