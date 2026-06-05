@@ -1622,9 +1622,9 @@ paths:
                       modified_gmt: "2024-09-20T18:22:00"
                     featured: true
                     prices:
-                      price: "18.00"
-                      regular_price: "24.00"
-                      sale_price: "18.00"
+                      price: "1800"
+                      regular_price: "2400"
+                      sale_price: "1800"
                       price_range: null
                       on_sale: true
                       date_on_sale:
@@ -1697,7 +1697,7 @@ paths:
                       - id: 156
                         name: "Wireless Earbuds"
                         permalink: "https://example-store.com/product/wireless-earbuds/"
-                        price: "12.00"
+                        price: "1200"
                         add_to_cart:
                           text: "Add to cart"
                           description: "Add to cart description"
@@ -1734,12 +1734,12 @@ paths:
                       modified_gmt: "2024-09-01T12:00:00"
                     featured: true
                     prices:
-                      price: "16.00"
-                      regular_price: "18.00"
-                      sale_price: "16.00"
+                      price: "1600"
+                      regular_price: "1800"
+                      sale_price: "1600"
                       price_range:
-                        min: "16.00"
-                        max: "18.00"
+                        min: "1600"
+                        max: "1800"
                       on_sale: true
                       date_on_sale:
                         from: null
@@ -1842,7 +1842,7 @@ paths:
                       - id: 202
                         name: "Blouse"
                         permalink: "https://example-store.com/product/woo-fashion-blouse/"
-                        price: "0.00"
+                        price: "1999"
                         add_to_cart:
                           text: "Add to cart"
                           description: "Add to cart description"
@@ -1933,12 +1933,12 @@ paths:
                       modified_gmt: "2024-09-18T15:45:00"
                     featured: false
                     prices:
-                      price: "25.00"
-                      regular_price: "25.00"
+                      price: "2500"
+                      regular_price: "2500"
                       sale_price: ""
                       price_range:
-                        min: "25.00"
-                        max: "35.00"
+                        min: "2500"
+                        max: "3500"
                       on_sale: false
                       date_on_sale:
                         from: null
@@ -2050,8 +2050,8 @@ paths:
                           large: "https://example-store.com/wp-content/uploads/2024/02/tshirt-white-1024x1024.jpg"
                           full: "https://example-store.com/wp-content/uploads/2024/02/tshirt-white.jpg"
                         prices:
-                          price: "25.00"
-                          regular_price: "25.00"
+                          price: "2500"
+                          regular_price: "2500"
                           sale_price: ""
                           on_sale: false
                           date_on_sale:
@@ -2093,8 +2093,8 @@ paths:
                           large: "https://example-store.com/wp-content/uploads/2024/02/tshirt-black-1024x1024.jpg"
                           full: "https://example-store.com/wp-content/uploads/2024/02/tshirt-black.jpg"
                         prices:
-                          price: "28.00"
-                          regular_price: "28.00"
+                          price: "2800"
+                          regular_price: "2800"
                           sale_price: ""
                           on_sale: false
                           date_on_sale:
@@ -2146,7 +2146,7 @@ paths:
                       - id: 301
                         name: "Classic Polo Shirt"
                         permalink: "https://example-store.com/product/classic-polo-shirt/"
-                        price: "32.00"
+                        price: "3200"
                         add_to_cart:
                           text: "Select options"
                           description: "Variable product"
@@ -2184,8 +2184,8 @@ paths:
                       modified_gmt: "2024-09-01T12:00:00"
                     featured: false
                     prices:
-                      price: "25.00"
-                      regular_price: "25.00"
+                      price: "2500"
+                      regular_price: "2500"
                       sale_price: ""
                       price_range: null
                       on_sale: false
@@ -3282,8 +3282,8 @@ paths:
                         modified_gmt: "2024-09-18T16:45:00"
                       featured: false
                       prices:
-                        price: "80.00"
-                        regular_price: "80.00"
+                        price: "8000"
+                        regular_price: "8000"
                         sale_price: ""
                         price_range: null
                         on_sale: false
@@ -3293,12 +3293,14 @@ paths:
                           to: null
                           to_gmt: null
                         currency:
-                          code: "USD"
-                          symbol: "$"
-                          position: "left"
-                          decimal_separator: "."
-                          thousand_separator: ","
-                          decimals: 2
+                          currency_code: "USD"
+                          currency_symbol: "$"
+                          currency_symbol_pos: "left"
+                          currency_minor_unit: 2
+                          currency_decimal_separator: "."
+                          currency_thousand_separator: ","
+                          currency_prefix: "$"
+                          currency_suffix: ""
                       hidden_conditions:
                         virtual: false
                         downloadable: false
@@ -3385,9 +3387,9 @@ paths:
                         modified_gmt: "2024-09-18T16:45:00"
                       featured: false
                       prices:
-                        price: "25.00"
-                        regular_price: "30.00"
-                        sale_price: "25.00"
+                        price: "2500"
+                        regular_price: "3000"
+                        sale_price: "2500"
                         price_range: null
                         on_sale: true
                         date_on_sale:
@@ -3491,9 +3493,9 @@ paths:
                         modified_gmt: "2024-09-01T12:00:00"
                       featured: false
                       prices:
-                        price: "16.00"
-                        regular_price: "18.00"
-                        sale_price: "16.00"
+                        price: "1600"
+                        regular_price: "1800"
+                        sale_price: "1600"
                         price_range: null
                         on_sale: true
                         date_on_sale:
@@ -3661,8 +3663,8 @@ paths:
                       modified_gmt: "2024-09-18T16:45:00"
                     featured: false
                     prices:
-                      price: "80.00"
-                      regular_price: "80.00"
+                      price: "8000"
+                      regular_price: "8000"
                       sale_price: ""
                       price_range: null
                       on_sale: false
@@ -3672,12 +3674,14 @@ paths:
                         to: null
                         to_gmt: null
                       currency:
-                        code: "USD"
-                        symbol: "$"
-                        position: "left"
-                        decimal_separator: "."
-                        thousand_separator: ","
-                        decimals: 2
+                        currency_code: "USD"
+                        currency_symbol: "$"
+                        currency_symbol_pos: "left"
+                        currency_minor_unit: 2
+                        currency_decimal_separator: "."
+                        currency_thousand_separator: ","
+                        currency_prefix: "$"
+                        currency_suffix: ""
                     hidden_conditions:
                       virtual: false
                       downloadable: false
@@ -3767,9 +3771,9 @@ paths:
                       modified_gmt: "2024-09-01T12:00:00"
                     featured: false
                     prices:
-                      price: "16.00"
-                      regular_price: "18.00"
-                      sale_price: "16.00"
+                      price: "1600"
+                      regular_price: "1800"
+                      sale_price: "1600"
                       price_range: null
                       on_sale: true
                       date_on_sale:
