@@ -8,9 +8,9 @@ Specifications are organized by plugin and API version. Each plugin directory co
 
 The core CoCart plugin provides cart management, product browsing, session administration, authentication, and store information endpoints.
 
-### CoCart Basic Edition — API v2 (Latest)
+### CoCart Starter Edition — API v2 (Latest)
 
-The latest specifications, reflecting CoCart Basic **v5.0.0**.
+The latest specifications, reflecting CoCart Starter **v5.0.0** (Releasing soon).
 
 | File | Description | Endpoints |
 |------|-------------|-----------|
@@ -48,7 +48,7 @@ An add-on plugin that extends CoCart with support for coupons, fees, shipping me
 
 #### Plus — API v1
 
-Reflects CoCart Plus **v1.6.0**.
+Reflects CoCart Plus **v1.6.0**. Current and only API available in Plus and still supported until v2.0.0.
 
 | File | Description | Endpoints |
 |------|-------------|-----------|
