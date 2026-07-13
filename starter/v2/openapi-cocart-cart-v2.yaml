@@ -382,7 +382,7 @@ paths:
                   type: string
                 price:
                   description: |
-                    Overrides the product price for this item. Only takes effect when the "Name Your Price" feature. Silently ignored otherwise.
+                    Overrides the product price for this item. Only takes effect when the "Name Your Price" feature is enabled — either via the plugin settings page or the `cocart_does_product_allow_price_change` filter (defaults to false since v4.9.0). Silently ignored otherwise.
                   type: string
                 return_item:
                   description: Returns the item details once added.
@@ -1575,6 +1575,10 @@ components:
       scheme: basic
       description: |
         Basic authentication with username and password.
+
+        Since v4.9.0, if an `X-HTTP-Method-Override` header is present, it is honored when
+        determining the request method during authentication (e.g. credentials sent in a
+        JSON body are still detected when the original method is tunneled through POST).
     bearerAuth:
       type: http
       scheme: bearer
