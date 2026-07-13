@@ -1,0 +1,251 @@
+openapi: 3.0.3
+info:
+  title: CoCart Plus - Products API v2
+  version: 2.0.0
+  description: |
+    CoCart Plus extends the CoCart REST API v2 with a product shipping rates
+    endpoint for calculating shipping costs for a product before it is added
+    to the cart.
+
+    Requires CoCart core v5.0+ to be installed and active.
+  termsOfService: https://cocartapi.com/terms-of-conditions-polar/
+  contact:
+    email: support@cocartapi.com
+  license:
+    name: GNU General Public License v3.0
+    url: http://www.gnu.org/licenses/gpl-3.0.html
+externalDocs:
+  description: Find out more about CoCart API
+  url: https://docs.cocartapi.com
+servers:
+- url: '{protocol}://{host}/wp-json/cocart/v2'
+  description: API v2
+  variables:
+    protocol:
+      enum:
+      - http
+      - https
+      default: https
+    host:
+      default: example-store.com
+      description: Your store domain
+tags:
+- name: products
+  description: Operations for product shipping calculations
+paths:
+  /products/{id}/shipping-rates:
+    get:
+      tags:
+      - products
+      summary: Get product shipping rates
+      description: |
+        Calculates and returns the available shipping rates for a product before it
+        is added to the cart. The product is temporarily added to a cart simulation
+        so that quantity-dependent shipping prices calculate correctly, then removed.
+
+        This endpoint is stateless: passing a `cart_key` is rejected with a 403 error
+        because shipping rate calculation must not be associated with a specific cart.
+
+        External and grouped product types cannot be calculated and return a 403 error.
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier for the product or variation ID.
+        required: true
+        schema:
+          type: string
+      - name: quantity
+        in: query
+        description: Quantity of this item to simulate adding to the cart.
+        required: false
+        schema:
+          type: string
+          default: '1'
+      - name: variation
+        in: query
+        description: Variable attributes that identify the variation of the item.
+        required: false
+        style: deepObject
+        explode: true
+        schema:
+          type: object
+          additionalProperties:
+            type: string
+      - name: item_data
+        in: query
+        description: Additional item data passed to make item unique.
+        required: false
+        style: deepObject
+        explode: true
+        schema:
+          type: object
+          additionalProperties: true
+      responses:
+        '200':
+          description: Shipping rates calculated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductShippingRates'
+              example:
+                item_key: 6364d3f0f495b6ab9dcf8d3b5c6e0b01
+                id: 123
+                parent_id: 0
+                name: Premium Quality T-Shirt
+                type: simple
+                item_match: true
+                packages:
+                  '1':
+                    rates:
+                      flat_rate:1:
+                        key: flat_rate:1
+                        method_id: flat_rate
+                        instance_id: 1
+                        label: Flat rate
+                        cost: '1000'
+                        html: 'Flat rate: $10.00'
+                        taxes: '0'
+                        meta_data:
+                          items: Premium Quality T-Shirt × 1
+                    formatted_destination: Beverly Hills, CA 90210, United States (US)
+        '403':
+          description: Forbidden - product type cannot be calculated or a cart key was passed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                cart_key_denied:
+                  summary: Cart key passed
+                  value:
+                    code: cocart_calculate_product_shipping_rates_cart_access_denied
+                    message: DO NOT associate a cart when calculating shipping rates for a product!
+                    data:
+                      status: 403
+                external_denied:
+                  summary: External product
+                  value:
+                    code: cocart_calculate_product_shipping_external_types_denied
+                    message: This product is external, therefore it cannot be calculated for shipping rates.
+                    data:
+                      status: 403
+        '404':
+          description: Not found - the product or variation is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_invalid_product
+                message: This product is invalid.
+                data:
+                  status: 404
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: |
+        Basic authentication with username and password.
+
+        Since CoCart v4.9.0, if an `X-HTTP-Method-Override` header is present, it is honored
+        when determining the request method during authentication (e.g. credentials sent in a
+        JSON body are still detected when the original method is tunneled through POST).
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Bearer token authentication (JWT). Optional for products endpoints.
+  schemas:
+    ProductShippingRates:
+      type: object
+      description: Shipping rates calculated for a product.
+      properties:
+        item_key:
+          type: string
+          description: The cart item key generated from the product, variation and item data.
+        id:
+          type: integer
+          description: Product ID.
+        parent_id:
+          type: integer
+          description: Parent product ID. 0 when the product has no parent.
+        name:
+          type: string
+          description: Product name.
+        type:
+          type: string
+          description: Product type (e.g. simple, variable, variation).
+        item_match:
+          type: boolean
+          description: Whether the generated item key matched the cart item key during simulation.
+        packages:
+          type: object
+          description: Shipping packages keyed by package number, each containing the available rates.
+          additionalProperties:
+            $ref: '#/components/schemas/ShippingRatesPackage'
+    ShippingRatesPackage:
+      type: object
+      properties:
+        rates:
+          type: object
+          description: Available shipping rates keyed by rate key.
+          additionalProperties:
+            $ref: '#/components/schemas/ProductShippingRate'
+        formatted_destination:
+          type: string
+          description: Formatted destination address the rates were calculated for.
+    ProductShippingRate:
+      type: object
+      properties:
+        key:
+          type: string
+          description: Rate key (e.g. "flat_rate:1").
+        method_id:
+          type: string
+          description: Shipping method ID.
+        instance_id:
+          type: integer
+          description: Shipping method instance ID.
+        label:
+          type: string
+          description: Shipping method label.
+        cost:
+          type: string
+          description: Shipping cost as a raw numeric string in the currency's smallest unit (e.g. "1000" = $10.00).
+        html:
+          type: string
+          description: Shipping method label with cost, formatted without HTML tags.
+        taxes:
+          type: string
+          description: Shipping tax amount as a raw numeric string. Empty string when no tax applies.
+        meta_data:
+          type: object
+          description: Rate meta data (e.g. the items included in the package).
+          additionalProperties: true
+    ErrorResponse:
+      type: object
+      description: Standard error response structure.
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code.
+          example: cocart_invalid_parameter
+        message:
+          type: string
+          description: Human-readable error message.
+          example: Invalid parameter provided.
+        data:
+          type: object
+          description: Additional error data.
+          properties:
+            status:
+              type: integer
+              description: HTTP status code.
+              example: 400
+          additionalProperties: true
+security:
+- {}
+- basicAuth: []
+- bearerAuth: []

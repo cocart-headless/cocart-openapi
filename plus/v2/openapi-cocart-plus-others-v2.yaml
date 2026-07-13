@@ -1,0 +1,200 @@
+openapi: 3.0.3
+info:
+  title: CoCart Plus - Others API v2
+  version: 2.0.0
+  description: |
+    CoCart Plus extends the CoCart REST API v2 with a customer registration endpoint.
+
+    Requires CoCart core v5.0+ to be installed and active.
+  termsOfService: https://cocartapi.com/terms-of-conditions-polar/
+  contact:
+    email: support@cocartapi.com
+  license:
+    name: GNU General Public License v3.0
+    url: http://www.gnu.org/licenses/gpl-3.0.html
+externalDocs:
+  description: Find out more about CoCart API
+  url: https://docs.cocartapi.com
+servers:
+- url: '{protocol}://{host}/wp-json/cocart/v2'
+  description: API v2
+  variables:
+    protocol:
+      enum:
+      - http
+      - https
+      default: https
+    host:
+      default: example-store.com
+      description: Your store domain
+tags:
+- name: customers
+  description: Operations for registering customers
+paths:
+  /register:
+    post:
+      tags:
+      - customers
+      summary: Register customer
+      description: |
+        Registers a new customer account. A valid email address is required.
+
+        When the WooCommerce setting "generate username from email" is enabled, the
+        username may be omitted and is generated automatically. When the WooCommerce
+        setting "generate password" is enabled, the password may be omitted and a
+        generated password is emailed to the customer.
+
+        A blocklist of reserved usernames (admin, root, support, etc.) cannot be
+        registered (filterable via the `cocart_reserved_usernames` filter).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  description: Customers email address. Required and must not already be registered.
+                  type: string
+                  format: email
+                username:
+                  description: Customers requested username. Optional when WooCommerce is set to generate usernames from the email address.
+                  type: string
+                password:
+                  description: Customers requested password. Optional when WooCommerce is set to generate passwords automatically.
+                  type: string
+              required:
+              - email
+            example:
+              email: jane.doe@example.com
+              username: janedoe
+              password: hunter2-Str0ng!
+      responses:
+        '200':
+          description: Customer registered successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisteredCustomer'
+              examples:
+                password_provided:
+                  summary: Password provided
+                  value:
+                    user_id: 43
+                    username: janedoe
+                    message: Your account was created successfully. Your login details have been sent to your email address.
+                password_generated:
+                  summary: Password generated
+                  value:
+                    user_id: 43
+                    username: janedoe
+                    message: Your account was created successfully and a password has been sent to your email address.
+        '400':
+          description: Bad request - reserved username or account creation failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_registration_error_reserved_username
+                message: This username cannot be registered. Please choose another.
+                data:
+                  status: 400
+        '404':
+          description: Not found - invalid email, invalid username or missing password.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_email:
+                  summary: Invalid email
+                  value:
+                    code: cocart_registration_invalid_email
+                    message: A valid email address is required!
+                    data:
+                      status: 404
+                missing_password:
+                  summary: Missing password
+                  value:
+                    code: registration-error-missing-password
+                    message: Please enter an account password.
+                    data:
+                      status: 404
+        '405':
+          description: Not allowed - the email address or username is already registered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                email_exists:
+                  summary: Email already registered
+                  value:
+                    code: cocart_registration_error_email_exists
+                    message: An account is already registered with your email address.
+                    data:
+                      status: 405
+                username_exists:
+                  summary: Username already registered
+                  value:
+                    code: cocart_registration_error_username_exists
+                    message: An account is already registered with that username. Please choose another.
+                    data:
+                      status: 405
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: |
+        Basic authentication with username and password.
+
+        Since CoCart v4.9.0, if an `X-HTTP-Method-Override` header is present, it is honored
+        when determining the request method during authentication (e.g. credentials sent in a
+        JSON body are still detected when the original method is tunneled through POST).
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Bearer token authentication (JWT). Not required for registering a customer.
+  schemas:
+    RegisteredCustomer:
+      type: object
+      description: The newly registered customer.
+      properties:
+        user_id:
+          type: integer
+          description: Unique identifier for the new user.
+        username:
+          type: string
+          description: The username registered for the new user.
+        message:
+          type: string
+          description: Human-readable confirmation message.
+    ErrorResponse:
+      type: object
+      description: Standard error response structure.
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code.
+          example: cocart_invalid_parameter
+        message:
+          type: string
+          description: Human-readable error message.
+          example: Invalid parameter provided.
+        data:
+          type: object
+          description: Additional error data.
+          properties:
+            status:
+              type: integer
+              description: HTTP status code.
+              example: 400
+          additionalProperties: true
+security:
+- {}
+- basicAuth: []
+- bearerAuth: []

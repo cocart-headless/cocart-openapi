@@ -56,6 +56,19 @@ Reflects CoCart Plus **v1.6.0**. Current and only API available in Plus and stil
 
 Covers: coupons, fees, shipping methods, payment methods, weight, removed items, quantities, cross-sells, fee/shipping calculations, and detailed totals (discount, fee, shipping, subtotal, tax, total).
 
+#### Plus - API v2
+
+Reflects CoCart Plus **v2.0.0** (In development).
+
+| File | Description | Endpoints |
+|------|-------------|-----------|
+| [Collection](plus/v2/openapi-cocart-plus-v2-collection.yaml) | All Plus v2 endpoints (excluding checkout) | 15 paths |
+| [Cart](plus/v2/openapi-cocart-plus-cart-v2.yaml) | Cart operations — mini cart, coupons, fees, remove all items, set shipping method | 9 paths |
+| [Products](plus/v2/openapi-cocart-plus-products-v2.yaml) | Product Shipping Calculation | 1 path |
+| [My Account](plus/v2/openapi-cocart-plus-my-account-v2.yaml) | My account - customer dashboard, orders, downloads | 4 paths |
+| [Others](plus/v2/openapi-cocart-plus-others-v2.yaml) | Customer registration | 1 path |
+| [Checkout](plus/v2/openapi-cocart-plus-checkout-v2.yaml) | Checkout - process orders, process payments | X paths |
+
 ### CoCart JWT Authentication
 
 A companion plugin that adds JWT (JSON Web Token) authentication to CoCart. Tokens are issued during login and managed via dedicated endpoints.

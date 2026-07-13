@@ -1,0 +1,769 @@
+openapi: 3.0.3
+info:
+  title: CoCart Plus - My Account API v2
+  version: 2.0.0
+  description: |
+    CoCart Plus extends the CoCart REST API v2 with customer account endpoints
+    for the account dashboard, editing account details, downloads and orders.
+
+    All endpoints require an authenticated customer, except viewing a single
+    order which also allows guest access when the order's billing email is provided.
+
+    Requires CoCart core v5.0+ to be installed and active.
+  termsOfService: https://cocartapi.com/terms-of-conditions-polar/
+  contact:
+    email: support@cocartapi.com
+  license:
+    name: GNU General Public License v3.0
+    url: http://www.gnu.org/licenses/gpl-3.0.html
+externalDocs:
+  description: Find out more about CoCart API
+  url: https://docs.cocartapi.com
+servers:
+- url: '{protocol}://{host}/wp-json/cocart/v2'
+  description: API v2
+  variables:
+    protocol:
+      enum:
+      - http
+      - https
+      default: https
+    host:
+      default: example-store.com
+      description: Your store domain
+tags:
+- name: my-account
+  description: Operations for the customer account dashboard, downloads and orders
+paths:
+  /my-account:
+    get:
+      tags:
+      - my-account
+      summary: Get account details
+      description: |
+        Returns details of the authenticated customer's account including addresses,
+        order count, total spent and the most recent order.
+      responses:
+        '200':
+          description: Account details retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+              example:
+                user:
+                  id: 42
+                  date_registered: '2024-03-15T10:30:00Z'
+                  email: john.doe@example.com
+                  first_name: John
+                  last_name: Doe
+                  display_name: John Doe
+                  addresses:
+                    billing:
+                      first_name: John
+                      last_name: Doe
+                      company: Acme Corporation
+                      address_1: 123 Main Street
+                      address_2: Suite 100
+                      city: Beverly Hills
+                      state: CA
+                      postcode: '90210'
+                      country: US
+                      email: john.doe@example.com
+                      phone: +1-555-123-4567
+                    shipping:
+                      first_name: John
+                      last_name: Doe
+                      company: ''
+                      address_1: 123 Main Street
+                      address_2: Suite 100
+                      city: Beverly Hills
+                      state: CA
+                      postcode: '90210'
+                      country: US
+                  orders_count: 12
+                  total_spent: $1,254.00
+                  is_paying_customer: true
+                  avatar_url: https://secure.gravatar.com/avatar/abc123
+                recent_order:
+                  order_id: 1234
+                  order_date: March 12, 2026
+                  order_data: https://example-store.com/wp-json/cocart/v2/my-account/orders/1234
+                meta:
+                  is_customer_outside_base: false
+                  is_vat_exempt: false
+                extensions: {}
+        '403':
+          description: Forbidden - you need to be logged in to view the account.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_access_my_account_denied
+                message: You need to be logged in to view account!
+                data:
+                  status: 403
+    post:
+      tags:
+      - my-account
+      summary: Update account details
+      description: |
+        Updates the authenticated customer's account details. First name, last name,
+        display name and email address are required (filterable via the
+        `cocart_save_account_details_required_fields` filter). To change the password,
+        provide the current password along with the new password entered twice.
+        Changed name and email values are kept in sync with the billing address.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                account_first_name:
+                  description: First name.
+                  type: string
+                account_last_name:
+                  description: Last name.
+                  type: string
+                account_display_name:
+                  description: Display name. Cannot be an email address.
+                  type: string
+                account_email:
+                  description: Email address.
+                  type: string
+                  format: email
+                password_current:
+                  description: Current password. Required when changing the password.
+                  type: string
+                password_1:
+                  description: New password.
+                  type: string
+                password_2:
+                  description: Confirm new password. Must match `password_1`.
+                  type: string
+              required:
+              - account_first_name
+              - account_last_name
+              - account_display_name
+              - account_email
+            example:
+              account_first_name: John
+              account_last_name: Doe
+              account_display_name: John Doe
+              account_email: john.doe@example.com
+      responses:
+        '200':
+          description: Account details updated successfully. Returns `true`.
+          content:
+            application/json:
+              schema:
+                type: boolean
+              example: true
+        '400':
+          description: Bad request - missing required field, invalid email or password validation failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_field:
+                  summary: Missing required field
+                  value:
+                    code: cocart_account_missing_required_field
+                    message: <strong>First name</strong> is a required field.
+                    data:
+                      status: 400
+                      id: account_first_name
+                passwords_mismatch:
+                  summary: New passwords do not match
+                  value:
+                    code: cocart_account_new_passwords_do_not_match
+                    message: New passwords do not match.
+                    data:
+                      status: 400
+        '403':
+          description: Forbidden - not logged in, email already registered or display name set to an email address.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_account_email_already_registered
+                message: This email address is already registered.
+                data:
+                  status: 403
+  /my-account/downloads:
+    get:
+      tags:
+      - my-account
+      summary: Get customer downloads
+      description: |
+        Returns the downloadable products available to the authenticated customer.
+        When no downloads are available, a plain message string is returned instead.
+      responses:
+        '200':
+          description: Downloads retrieved successfully.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: array
+                  title: Downloads
+                  description: List of available downloads.
+                  items:
+                    $ref: '#/components/schemas/CustomerDownload'
+                - type: string
+                  title: No Downloads
+                  description: Message returned when no downloads are available.
+              examples:
+                downloads:
+                  summary: Available downloads
+                  value:
+                  - product_name: Music Album
+                    download_name: Track One
+                    file: https://example-store.com/?download_file=456&order=wc_order_abc123&uid=hash
+                    downloads_remaining: '3'
+                    download_expires: December 31st 2026
+                empty:
+                  summary: No downloads available
+                  value: No downloads available yet on this account.
+        '403':
+          description: Forbidden - you need to be logged in to view downloads.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_access_my_account_denied
+                message: You need to be logged in to view account!
+                data:
+                  status: 403
+  /my-account/orders:
+    get:
+      tags:
+      - my-account
+      summary: Get customer orders
+      description: |
+        Returns a paginated list of the authenticated customer's orders with
+        available order actions and pagination links.
+      parameters:
+      - name: page
+        in: query
+        description: The pagination of orders to return.
+        required: false
+        schema:
+          type: integer
+          default: 1
+      - name: per_page
+        in: query
+        description: Limit amount of orders to return per page. Capped at 50 per request.
+        required: false
+        schema:
+          type: integer
+          default: 10
+          minimum: 1
+          maximum: 100
+      - name: order
+        in: query
+        description: Order sort attribute ascending or descending.
+        required: false
+        schema:
+          type: string
+          default: DESC
+          enum:
+          - ASC
+          - DESC
+      responses:
+        '200':
+          description: Orders retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerOrders'
+              example:
+                orders:
+                - order_id: 1234
+                  order_status: Processing
+                  order_date: March 12, 2026, 2:45 pm
+                  item_count: 3
+                  order_total: $125.00
+                  order_actions:
+                    view:
+                      url: https://example-store.com/wp-json/cocart/v2/my-account/orders/1234
+                      label: View
+                pagination:
+                  next: https://example-store.com/wp-json/cocart/v2/my-account/orders/?page=2&per_page=10
+        '403':
+          description: Forbidden - you need to be logged in to view orders.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_access_my_account_denied
+                message: You need to be logged in to view account!
+                data:
+                  status: 403
+        '404':
+          description: Not found - no orders have been made yet.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_account_no_orders
+                message: No order has been made yet.
+                data:
+                  status: 404
+  /my-account/orders/{id}:
+    get:
+      tags:
+      - my-account
+      summary: Get single order
+      description: |
+        Returns the details of a single order belonging to the authenticated customer.
+        Guests may also view an order by providing the `email` query parameter matching
+        the order's billing email address.
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier for the order.
+        required: true
+        schema:
+          type: integer
+      - name: email
+        in: query
+        description: The order's billing email address. Allows guest access to the order when it matches.
+        required: false
+        schema:
+          type: string
+          format: email
+      responses:
+        '200':
+          description: Order retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerOrder'
+              example:
+                order_id: 1234
+                order_number: '1234'
+                order_parent: 0
+                order_date: March 12, 2026, 2:45 pm
+                order_status: Processing
+                order_currency: USD
+                billing_address: John Doe, 123 Main Street, Suite 100, Beverly Hills, CA 90210, United States (US)
+                shipping_address: John Doe, 123 Main Street, Suite 100, Beverly Hills, CA 90210, United States (US)
+                phone: +1-555-123-4567
+                email: john.doe@example.com
+                ship_to_billing: true
+                items:
+                - item_id: 10
+                  product_id: 123
+                  variation_id: 0
+                  product_image: https://example-store.com/wp-content/uploads/2024/03/tshirt.jpg
+                  product_name: Premium Quality T-Shirt
+                  product_title: Premium Quality T-Shirt
+                  product_type: simple
+                  sku: TSHIRT-001
+                  quantity: '2'
+                  subtotal: $36.00
+                  purchase_note: ''
+                  refunded_qty: '0'
+                  meta: {}
+                  link: https://example-store.com/wp-json/cocart/v2/products/123
+                totals:
+                  subtotal:
+                    label: Subtotal
+                    value: $36.00
+                  shipping:
+                    label: Shipping
+                    value: $10.00
+                  payment_method:
+                    label: Payment method
+                    value: Credit Card
+                  total:
+                    label: Total
+                    value: $46.00
+                order_note: ''
+                order_notes: []
+                downloads: []
+                order_actions: {}
+        '403':
+          description: Forbidden - not logged in and no matching billing email provided.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_access_my_orders_denied
+                message: You are not logged in! Cannot view order.
+                data:
+                  status: 403
+        '404':
+          description: Not found - the order does not exist or the billing email does not match.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_order_does_not_exist
+                message: Order #1234 does not exist.
+                data:
+                  status: 404
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: |
+        Basic authentication with username and password.
+
+        Since CoCart v4.9.0, if an `X-HTTP-Method-Override` header is present, it is honored
+        when determining the request method during authentication (e.g. credentials sent in a
+        JSON body are still detected when the original method is tunneled through POST).
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Bearer token authentication (JWT). Authenticates the customer for account operations.
+  schemas:
+    Account:
+      type: object
+      description: The customer's account details.
+      properties:
+        user:
+          type: object
+          description: User account information.
+          properties:
+            id:
+              type: integer
+              description: Unique identifier for the user.
+            date_registered:
+              type: string
+              format: date-time
+              description: User registration date.
+            email:
+              type: string
+              format: email
+              description: Email address used when registered. May differ from the billing email address.
+            first_name:
+              type: string
+              description: First name.
+            last_name:
+              type: string
+              description: Last name.
+            display_name:
+              type: string
+              description: Display name.
+            addresses:
+              type: object
+              description: Customer addresses. The `shipping` address is only included when the store ships to an address other than billing.
+              additionalProperties:
+                $ref: '#/components/schemas/AccountAddress'
+            orders_count:
+              type: integer
+              description: Total number of orders.
+            total_spent:
+              type: string
+              description: Total amount spent, formatted without HTML.
+            is_paying_customer:
+              type: boolean
+              description: Whether the customer has made any purchase.
+            avatar_url:
+              type: string
+              format: uri
+              description: Avatar URL.
+        recent_order:
+          type: object
+          description: Most recent order information.
+          properties:
+            order_id:
+              type: integer
+              nullable: true
+              description: Most recent order ID. Null when no order has been made.
+            order_date:
+              type: string
+              nullable: true
+              description: Most recent order date. Null when no order has been made.
+            order_data:
+              type: string
+              format: uri
+              description: Link to the order details endpoint. Empty string when no order has been made.
+        meta:
+          type: object
+          description: Additional customer metadata.
+          properties:
+            is_customer_outside_base:
+              type: boolean
+              description: Whether the customer is outside the base location.
+            is_vat_exempt:
+              type: boolean
+              description: Whether the customer is VAT exempt.
+        extensions:
+          type: object
+          description: Additional data added by third-party extensions via the `cocart_get_account_extensions` filter.
+          additionalProperties: true
+    AccountAddress:
+      type: object
+      properties:
+        first_name:
+          type: string
+          description: First name.
+        last_name:
+          type: string
+          description: Last name.
+        company:
+          type: string
+          description: Company name.
+        address_1:
+          type: string
+          description: Address line 1.
+        address_2:
+          type: string
+          description: Address line 2.
+        city:
+          type: string
+          description: City.
+        state:
+          type: string
+          description: State/Province.
+        postcode:
+          type: string
+          description: Postcode/ZIP.
+        country:
+          type: string
+          description: Country code.
+        email:
+          type: string
+          format: email
+          description: Email address (billing only).
+        phone:
+          type: string
+          description: Phone number (billing only).
+    CustomerDownload:
+      type: object
+      properties:
+        product_name:
+          type: string
+          description: Product name.
+        download_name:
+          type: string
+          description: Download name.
+        file:
+          type: string
+          format: uri
+          description: Download URL.
+        downloads_remaining:
+          type: string
+          description: Number of downloads remaining, or the infinity symbol when unlimited.
+        download_expires:
+          type: string
+          description: Download expiration date, or "Never".
+    CustomerOrders:
+      type: object
+      description: Paginated list of customer orders.
+      properties:
+        orders:
+          type: array
+          description: List of customer orders.
+          items:
+            type: object
+            properties:
+              order_id:
+                type: integer
+                description: Unique identifier for the order.
+              order_status:
+                type: string
+                description: Order status.
+              order_date:
+                type: string
+                description: Order date.
+              item_count:
+                type: integer
+                description: Number of items in the order (excluding refunded items).
+              order_total:
+                type: string
+                description: Order total amount, formatted without HTML.
+              order_actions:
+                type: object
+                description: Available actions for the order (e.g. view), each with a `url` and `label`.
+                additionalProperties:
+                  $ref: '#/components/schemas/OrderAction'
+        pagination:
+          type: object
+          description: Pagination information. Links are only present when more pages are available.
+          properties:
+            previous:
+              type: string
+              format: uri
+              description: Link to previous page.
+            next:
+              type: string
+              format: uri
+              description: Link to next page.
+    OrderAction:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          description: URL to perform the action.
+        label:
+          type: string
+          description: Human-readable action label.
+    CustomerOrder:
+      type: object
+      description: A single customer order. Extendable via the `cocart_add_additional_single_order_fields` filter.
+      properties:
+        order_id:
+          type: integer
+          description: Unique identifier for the order.
+        order_number:
+          type: string
+          description: Order number.
+        order_parent:
+          type: integer
+          description: Parent order ID. 0 when the order has no parent.
+        order_date:
+          type: string
+          description: Order date.
+        order_status:
+          type: string
+          description: Order status.
+        order_currency:
+          type: string
+          description: Order currency code.
+        billing_address:
+          type: string
+          description: Formatted billing address as a single line.
+        shipping_address:
+          type: string
+          description: Formatted shipping address as a single line.
+        phone:
+          type: string
+          description: Billing phone number.
+        email:
+          type: string
+          format: email
+          description: Billing email address.
+        ship_to_billing:
+          type: boolean
+          description: Whether the order needs a shipping address.
+        items:
+          type: array
+          description: Order items.
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        totals:
+          type: object
+          description: Order totals rows keyed by total type (e.g. subtotal, shipping, payment_method, total), each with a `label` and `value`.
+          additionalProperties:
+            type: object
+            properties:
+              label:
+                type: string
+                description: Total row label.
+              value:
+                type: string
+                description: Total row value, formatted without HTML.
+        order_note:
+          type: string
+          description: Customer note left on the order.
+        order_notes:
+          type: array
+          description: Order notes shared with the customer.
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                description: Note date.
+              note:
+                type: string
+                description: Note content.
+        downloads:
+          type: array
+          description: Downloadable items for the order. Empty when the order has no permitted downloads.
+          items:
+            $ref: '#/components/schemas/CustomerDownload'
+        order_actions:
+          type: object
+          description: Available actions for the order (e.g. pay, cancel), each with a `url` and `label`.
+          additionalProperties:
+            $ref: '#/components/schemas/OrderAction'
+    OrderItem:
+      type: object
+      properties:
+        item_id:
+          type: integer
+          description: Order item ID.
+        product_id:
+          type: integer
+          description: Product ID. Empty when the product no longer exists.
+        variation_id:
+          type: integer
+          description: Variation ID. 0 when the item is not a variation.
+        product_image:
+          type: string
+          format: uri
+          description: Product featured image URL.
+        product_name:
+          type: string
+          description: Product name.
+        product_title:
+          type: string
+          description: Product title.
+        product_type:
+          type: string
+          description: Product type.
+        sku:
+          type: string
+          description: Product SKU.
+        quantity:
+          type: string
+          description: Quantity ordered.
+        subtotal:
+          type: string
+          description: Line subtotal, formatted without HTML.
+        purchase_note:
+          type: string
+          description: Product purchase note. Only shown for completed and processing orders.
+        refunded_qty:
+          type: string
+          description: Quantity refunded for this item.
+        meta:
+          type: object
+          description: Formatted item meta data keyed by meta ID.
+          additionalProperties: true
+        link:
+          type: string
+          format: uri
+          description: Link to the product endpoint. Empty when the product no longer exists.
+    ErrorResponse:
+      type: object
+      description: Standard error response structure.
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code.
+          example: cocart_invalid_parameter
+        message:
+          type: string
+          description: Human-readable error message.
+          example: Invalid parameter provided.
+        data:
+          type: object
+          description: Additional error data.
+          properties:
+            status:
+              type: integer
+              description: HTTP status code.
+              example: 400
+          additionalProperties: true
+security:
+- basicAuth: []
+- bearerAuth: []
