@@ -6,7 +6,7 @@ info:
     CoCart Plus extends the CoCart REST API v2 with additional cart endpoints for
     the mini cart, coupons, fees, removing all items and setting shipping methods.
 
-    Requires CoCart core v5.0+ to be installed and active.
+    Requires CoCart Starter v5.0+ to be installed and active.
 
     When the geolocation feature is enabled, responses include `Country`,
     `Country-Code`, `Region` and `Timezone` headers.

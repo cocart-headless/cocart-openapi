@@ -7,7 +7,7 @@ info:
     coupons, fees, removing all items, setting shipping methods), product shipping rate
     calculation, customer account endpoints and customer registration.
 
-    Requires CoCart core v5.0+ to be installed and active.
+    Requires CoCart Starter v5.0+ to be installed and active.
 
     When the geolocation feature is enabled, responses include `Country`,
     `Country-Code`, `Region` and `Timezone` headers.

@@ -9,7 +9,7 @@ info:
     All endpoints require an authenticated customer, except viewing a single
     order which also allows guest access when the order's billing email is provided.
 
-    Requires CoCart core v5.0+ to be installed and active.
+    Requires CoCart Starter v5.0+ to be installed and active.
   termsOfService: https://cocartapi.com/terms-of-conditions-polar/
   contact:
     email: support@cocartapi.com
