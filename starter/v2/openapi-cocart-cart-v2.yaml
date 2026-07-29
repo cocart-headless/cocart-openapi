@@ -130,6 +130,8 @@ paths:
                     name: Wireless Bluetooth Headphones
                     title: Wireless Bluetooth Headphones
                     price: '1800'
+                    regular_price: '2200'
+                    on_sale: true
                     quantity:
                       value: 2
                       minimum: 1
@@ -161,6 +163,8 @@ paths:
                     name: Premium Cotton T-Shirt - Large, Navy Blue
                     title: Premium Cotton T-Shirt
                     price: '8000'
+                    regular_price: '8000'
+                    on_sale: false
                     quantity:
                       value: 1
                       minimum: 1
@@ -236,8 +240,9 @@ paths:
                   total: 5.0
                   tax: 0.5
                 taxes:
-                - label: Sales Tax
-                  total: '1310'
+                - key: total
+                  name: Sales Tax
+                  price: '1310'
                 totals:
                   subtotal: '11600'
                   subtotal_tax: '1160'
@@ -1674,6 +1679,12 @@ components:
         price:
           type: string
           description: Current product price. Raw numeric value (e.g. "1800") by default; formatted string (e.g. "$18.00") when the `formatted` query parameter is true.
+        regular_price:
+          type: string
+          description: Product regular price (before any sale), so the original price can be displayed when the item is discounted. Raw numeric value by default; formatted string when `formatted=true`.
+        on_sale:
+          type: boolean
+          description: Whether the product is currently on sale.
         quantity:
           type: object
           description: Quantity information for this item.
@@ -1974,22 +1985,19 @@ components:
     CartTax:
       type: object
       description: |
-        Tax entry. Structure depends on the WooCommerce tax display setting:
-        - Non-itemized: `{ label, total }` — a single combined tax line.
-        - Itemized: `{ name, price }` — one entry per tax rate.
+        Tax entry. Always shaped as `{ key, name, price }`, regardless of the WooCommerce tax display setting:
+        - Itemized: one entry per WooCommerce tax rate, keyed by its rate code (e.g. "GB-VAT-1").
+        - Non-itemized: a single synthetic entry keyed `total`.
       properties:
-        label:
+        key:
           type: string
-          description: Tax label (non-itemized mode).
-        total:
-          type: string
-          description: Combined tax total as raw numeric string, e.g. "1310" (non-itemized mode). Formatted string when `formatted=true`.
+          description: Tax rate code (e.g. "GB-VAT-1"), or "total" for the synthetic non-itemized entry.
         name:
           type: string
-          description: Tax rate name (itemized mode).
+          description: Tax rate name/label.
         price:
           type: string
-          description: Tax amount as raw numeric string (itemized mode). Formatted string when `formatted=true`.
+          description: Tax amount as raw numeric string, e.g. "1310". Formatted string when `formatted=true`.
     AppliedCoupon:
       type: object
       properties:
