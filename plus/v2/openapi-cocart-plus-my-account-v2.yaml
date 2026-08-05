@@ -7,7 +7,8 @@ info:
     for the account dashboard, editing account details, downloads and orders.
 
     All endpoints require an authenticated customer, except viewing a single
-    order which also allows guest access when the order's billing email is provided.
+    order (which also allows guest access when the order's billing email is
+    provided) and confirming a pending email address change, which is public.
 
     Requires CoCart Starter v5.0+ to be installed and active.
   termsOfService: https://cocartapi.com/terms-of-conditions-polar/
@@ -114,6 +115,15 @@ paths:
         `cocart_save_account_details_required_fields` filter). To change the password,
         provide the current password along with the new password entered twice.
         Changed name and email values are kept in sync with the billing address.
+
+        When changing the email address and email change verification is enabled
+        (the default), the new email is NOT applied immediately. Instead a
+        confirmation link is sent to the new address (valid for 24 hours by
+        default) and the response returns `email_verification_pending: true`.
+        The customer must open the link, which resolves via
+        `GET /my-account/verify-email`, to complete the change. When verification
+        is disabled, the email is updated immediately and
+        `email_verification_pending` is `false`.
       requestBody:
         required: true
         content:
@@ -155,12 +165,22 @@ paths:
               account_email: john.doe@example.com
       responses:
         '200':
-          description: Account details updated successfully. Returns `true`.
+          description: Account details updated successfully.
           content:
             application/json:
               schema:
-                type: boolean
-              example: true
+                $ref: '#/components/schemas/AccountUpdateResult'
+              examples:
+                updated:
+                  summary: Updated immediately
+                  value:
+                    success: true
+                    email_verification_pending: false
+                pending_verification:
+                  summary: Email change pending verification
+                  value:
+                    success: true
+                    email_verification_pending: true
         '400':
           description: Bad request - missing required field, invalid email or password validation failed.
           content:
@@ -176,11 +196,46 @@ paths:
                     data:
                       status: 400
                       id: account_first_name
+                invalid_email:
+                  summary: Invalid email address
+                  value:
+                    code: cocart_account_provide_valid_email
+                    message: Please provide a valid email address.
+                    data:
+                      status: 400
+                fill_all_password_fields:
+                  summary: Current password given but new password fields empty
+                  value:
+                    code: cocart_account_fill_all_password_fields
+                    message: Please fill out all password fields.
+                    data:
+                      status: 400
+                enter_current_password:
+                  summary: New password given without current password
+                  value:
+                    code: cocart_account_enter_current_password
+                    message: Please enter your current password.
+                    data:
+                      status: 400
+                reenter_password:
+                  summary: New password confirmation missing
+                  value:
+                    code: cocart_account_reenter_password
+                    message: Please re-enter your password.
+                    data:
+                      status: 400
                 passwords_mismatch:
                   summary: New passwords do not match
                   value:
                     code: cocart_account_new_passwords_do_not_match
                     message: New passwords do not match.
+                    data:
+                      status: 400
+                incorrect_current_password:
+                  summary: Current password is incorrect
+                  value:
+                    code: cocart_account_incorrect_current_password
+                    message: Your current password is incorrect.
                     data:
                       status: 400
         '403':
@@ -189,11 +244,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_account_email_already_registered
-                message: This email address is already registered.
-                data:
-                  status: 403
+              examples:
+                email_registered:
+                  summary: Email already registered to another account
+                  value:
+                    code: cocart_account_email_already_registered
+                    message: This email address is already registered.
+                    data:
+                      status: 403
+                display_name_is_email:
+                  summary: Display name set to an email address
+                  value:
+                    code: cocart_cannot_set_email_as_display_name
+                    message: Display name cannot be set to an email address for security reasons.
+                    data:
+                      status: 403
   /my-account/downloads:
     get:
       tags:
@@ -251,20 +316,22 @@ paths:
       parameters:
       - name: page
         in: query
-        description: The pagination of orders to return.
+        description: The pagination of orders to return. Clamped server-side to a maximum of 100.
         required: false
         schema:
           type: integer
           default: 1
+          minimum: 1
+          maximum: 100
       - name: per_page
         in: query
-        description: Limit amount of orders to return per page. Capped at 50 per request.
+        description: Limit amount of orders to return per page. Clamped server-side to a maximum of 50 per request, regardless of the value requested.
         required: false
         schema:
           type: integer
           default: 10
           minimum: 1
-          maximum: 100
+          maximum: 50
       - name: order
         in: query
         description: Order sort attribute ascending or descending.
@@ -413,6 +480,65 @@ paths:
                 message: Order #1234 does not exist.
                 data:
                   status: 404
+  /my-account/verify-email:
+    get:
+      tags:
+      - my-account
+      summary: Verify pending email change
+      description: |
+        Confirms a pending email address change initiated via
+        `POST /my-account` and applies the new email to the user account and
+        billing address. This endpoint is intentionally public (no
+        authentication required) since the confirmation link is opened from an
+        email client that may not share a session with the requester -
+        possession of the emailed `key` is the proof of ownership. The link
+        expires after 24 hours by default.
+      parameters:
+      - name: key
+        in: query
+        description: The verification key sent to the pending new email address.
+        required: true
+        schema:
+          type: string
+      - name: user_id
+        in: query
+        description: The user ID the pending email change belongs to.
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Email address verified and updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyEmailResult'
+              example:
+                success: true
+                email: john.doe@example.com
+        '400':
+          description: Bad request - the verification key is invalid, expired, or does not match.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_invalid_or_expired_key
+                message: This confirmation link is invalid or has expired.
+                data:
+                  status: 400
+        '403':
+          description: Forbidden - the pending email address is already registered to a different user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_account_email_already_registered
+                message: This email address is already registered.
+                data:
+                  status: 403
+      security: []
 components:
   securitySchemes:
     basicAuth:
@@ -507,6 +633,36 @@ components:
           type: object
           description: Additional data added by third-party extensions via the `cocart_get_account_extensions` filter.
           additionalProperties: true
+    AccountUpdateResult:
+      type: object
+      description: The result of updating the customer's account details.
+      properties:
+        success:
+          type: boolean
+          description: Whether the account details were saved.
+        email_verification_pending:
+          type: boolean
+          description: |
+            True when an email address change was requested and is awaiting
+            confirmation via `GET /my-account/verify-email` - the account's
+            email address has not changed yet. False when there was no email
+            change, or verification is disabled and the email updated immediately.
+      required:
+        - success
+        - email_verification_pending
+    VerifyEmailResult:
+      type: object
+      description: The result of confirming a pending email address change.
+      properties:
+        success:
+          type: boolean
+        email:
+          type: string
+          format: email
+          description: The email address that was applied to the account.
+      required:
+        - success
+        - email
     AccountAddress:
       type: object
       properties:
