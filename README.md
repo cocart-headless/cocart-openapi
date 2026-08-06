@@ -67,7 +67,7 @@ Reflects CoCart Plus **v2.0.0** (In development).
 | [Products](plus/v2/openapi-cocart-plus-products-v2.yaml) | Product Shipping Calculation | 1 path |
 | [My Account](plus/v2/openapi-cocart-plus-my-account-v2.yaml) | My account - customer dashboard, orders, downloads | 5 paths |
 | [Others](plus/v2/openapi-cocart-plus-others-v2.yaml) | Customer registration | 1 path |
-| [Checkout](plus/v2/openapi-cocart-plus-checkout-v2.yaml) | Checkout - process orders, process payments | 8 paths |
+| [Checkout](plus/v2/openapi-cocart-plus-checkout-v2.yaml) | Checkout - process orders, process payments | 7 paths |
 
 ### CoCart JWT Authentication
 

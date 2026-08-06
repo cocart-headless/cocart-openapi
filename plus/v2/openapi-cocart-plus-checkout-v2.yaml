@@ -41,7 +41,7 @@ tags:
   - name: checkout
     description: Operations for retrieving/updating checkout data and processing orders
   - name: payment
-    description: Operations for payment context and available payment methods
+    description: Operations for available payment methods
   - name: orders
     description: Operations for order confirmation and paying for existing orders
   - name: addresses
@@ -546,6 +546,16 @@ paths:
         Unlike `POST /order-received/{order_id}/pay`, a payment failure here does
         NOT raise an HTTP error - the order is still created and a `200` is returned
         with `payment_result.payment_status` set to `"failed"`.
+
+        When the gateway requires further customer action before the payment can
+        complete (e.g. 3D Secure/SCA), `payment_result.payment_status` is
+        `"requires_action"` and `action_type`/`action_data` describe what the
+        client must do (gateway-specific - e.g. for Stripe, `action_data.client_secret`
+        to confirm client-side). In this case the transaction has NOT finished:
+        the draft order and cart session are deliberately left intact, and
+        `cocart_checkout_complete` does not fire. Once the client has completed
+        the action, call `POST /checkout` again with the same cart/session to
+        land on the same order rather than creating a duplicate.
       requestBody:
         required: true
         content:
@@ -586,38 +596,77 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CheckoutProcessResponse'
-              example:
-                order_id: 1234
-                status: pending
-                order_key: wc_order_abc123
-                order_number: '1234'
-                payment_result:
-                  payment_status: success
-                  redirect_url: https://example-store.com/checkout/order-received/1234/?key=wc_order_abc123
-                  message: ''
-                customer_id: 0
-                billing_address:
-                  first_name: John
-                  last_name: Doe
-                  company: ''
-                  address_1: 123 Main Street
-                  address_2: ''
-                  city: Beverly Hills
-                  state: CA
-                  postcode: '90210'
-                  country: US
-                  email: john.doe@example.com
-                  phone: +1-555-123-4567
-                shipping_address:
-                  first_name: John
-                  last_name: Doe
-                  company: ''
-                  address_1: 123 Main Street
-                  address_2: ''
-                  city: Beverly Hills
-                  state: CA
-                  postcode: '90210'
-                  country: US
+              examples:
+                success:
+                  summary: Payment completed
+                  value:
+                    order_id: 1234
+                    status: pending
+                    order_key: wc_order_abc123
+                    order_number: '1234'
+                    payment_result:
+                      payment_status: success
+                      redirect_url: https://example-store.com/checkout/order-received/1234/?key=wc_order_abc123
+                      message: ''
+                    customer_id: 0
+                    billing_address:
+                      first_name: John
+                      last_name: Doe
+                      company: ''
+                      address_1: 123 Main Street
+                      address_2: ''
+                      city: Beverly Hills
+                      state: CA
+                      postcode: '90210'
+                      country: US
+                      email: john.doe@example.com
+                      phone: +1-555-123-4567
+                    shipping_address:
+                      first_name: John
+                      last_name: Doe
+                      company: ''
+                      address_1: 123 Main Street
+                      address_2: ''
+                      city: Beverly Hills
+                      state: CA
+                      postcode: '90210'
+                      country: US
+                requires_action:
+                  summary: Gateway requires further customer action (e.g. 3D Secure)
+                  value:
+                    order_id: 1234
+                    status: pending
+                    order_key: wc_order_abc123
+                    order_number: '1234'
+                    payment_result:
+                      payment_status: requires_action
+                      action_type: stripe_confirm_payment
+                      action_data:
+                        client_secret: pi_3H8x2y2eZvKYlo2C_secret_abc123
+                        intent_type: payment_intent
+                    customer_id: 0
+                    billing_address:
+                      first_name: John
+                      last_name: Doe
+                      company: ''
+                      address_1: 123 Main Street
+                      address_2: ''
+                      city: Beverly Hills
+                      state: CA
+                      postcode: '90210'
+                      country: US
+                      email: john.doe@example.com
+                      phone: +1-555-123-4567
+                    shipping_address:
+                      first_name: John
+                      last_name: Doe
+                      company: ''
+                      address_1: 123 Main Street
+                      address_2: ''
+                      city: Beverly Hills
+                      state: CA
+                      postcode: '90210'
+                      country: US
         '400':
           description: Bad request - cart/customer validation failed, or the order could not be processed.
           content:
@@ -777,81 +826,6 @@ paths:
                   value:
                     code: cocart_account_creation_failed
                     message: An account could not be created for you. Please try again.
-                    data:
-                      status: 400
-        '401':
-          description: Unauthorized - no cart session and not logged in.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_rest_authentication_required
-                message: A valid cart key or an authenticated customer is required.
-                data:
-                  status: 401
-  /checkout/payment-context:
-    post:
-      tags:
-        - payment
-      summary: Create payment context
-      description: |
-        Builds a payment context for a chosen payment method ahead of the final
-        `POST /checkout` call: the gateway ID/title, the current cart total, and
-        currency data. Requires an active cart session or a logged-in customer.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                payment_method:
-                  description: The payment gateway ID to build a payment context for.
-                  type: string
-              required:
-                - payment_method
-            example:
-              payment_method: stripe
-      responses:
-        '200':
-          description: Payment context created successfully.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaymentContext'
-              example:
-                gateway_id: stripe
-                title: Credit Card (Stripe)
-                cart_total: '4600'
-                currency:
-                  currency_code: USD
-                  currency_symbol: $
-                  currency_symbol_pos: left
-                  currency_minor_unit: 2
-                  currency_decimal_separator: .
-                  currency_thousand_separator: ','
-                  currency_prefix: $
-                  currency_suffix: ''
-        '400':
-          description: Bad request - the payment method is invalid, or the cart is empty.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                invalid_gateway:
-                  summary: Invalid or unavailable payment gateway
-                  value:
-                    code: cocart_checkout_invalid_gateway
-                    message: This payment method is not available.
-                    data:
-                      status: 400
-                empty_cart:
-                  summary: Cart is empty
-                  value:
-                    code: cocart_checkout_empty_cart
-                    message: You cannot create a payment context with an empty cart.
                     data:
                       status: 400
         '401':
@@ -1511,6 +1485,11 @@ components:
           $ref: '#/components/schemas/ShippingAddress'
     PaymentResult:
       type: object
+      description: |
+        The outcome of payment processing. The field set present depends on
+        `payment_status`: `success`/`no_payment_required` return `redirect_url`;
+        `failed` returns `message`; `requires_action` returns `action_type` and
+        `action_data` instead of either.
       properties:
         payment_status:
           type: string
@@ -1519,13 +1498,28 @@ components:
             - success
             - failed
             - no_payment_required
+            - requires_action
         redirect_url:
           type: string
           format: uri
-          description: URL to redirect the customer to (typically the order-received page, or a gateway redirect for off-site payment methods).
+          description: URL to redirect the customer to (typically the order-received page, or a gateway redirect for off-site payment methods). Present when `payment_status` is `success` or `no_payment_required`.
         message:
           type: string
-          description: Additional human-readable message about the payment result. Empty on success.
+          description: Additional human-readable message about the payment result. Present when `payment_status` is `failed`.
+        action_type:
+          type: string
+          description: |
+            Identifies the kind of customer action required. Present only when
+            `payment_status` is `requires_action`. Gateway-specific
+            (e.g. `stripe_confirm_payment` for Stripe 3D Secure/SCA).
+        action_data:
+          type: object
+          description: |
+            Data the client needs to complete the required action. Present only
+            when `payment_status` is `requires_action`. Shape is gateway-specific
+            - for Stripe, includes `client_secret` and `intent_type`
+            (`payment_intent` or `setup_intent`).
+          additionalProperties: true
     BillingAddress:
       type: object
       description: Billing address using unprefixed field names.
@@ -2231,18 +2225,6 @@ components:
         redirect_url:
           type: string
           format: uri
-    PaymentContext:
-      type: object
-      properties:
-        gateway_id:
-          type: string
-        title:
-          type: string
-        cart_total:
-          type: string
-          description: The cart's current total as a raw numeric string.
-        currency:
-          $ref: '#/components/schemas/Currency'
     PaymentMethod:
       type: object
       description: A single available payment gateway, keyed by gateway ID in the response.
