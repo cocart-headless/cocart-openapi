@@ -46,6 +46,12 @@ paths:
 
         A blocklist of reserved usernames (admin, root, support, etc.) cannot be
         registered (filterable via the `cocart_reserved_usernames` filter).
+
+        The username/password fields are named `requested_username` /
+        `requested_password` rather than `username`/`password` deliberately:
+        CoCart Starter's authentication layer treats any request containing
+        non-empty `username`/`password` fields as a Basic Auth attempt, which
+        would collide with (and reject) this endpoint's own registration fields.
       requestBody:
         required: true
         content:
@@ -57,18 +63,18 @@ paths:
                   description: Customers email address. Required and must not already be registered.
                   type: string
                   format: email
-                username:
+                requested_username:
                   description: Customers requested username. Optional when WooCommerce is set to generate usernames from the email address.
                   type: string
-                password:
+                requested_password:
                   description: Customers requested password. Optional when WooCommerce is set to generate passwords automatically.
                   type: string
               required:
               - email
             example:
               email: jane.doe@example.com
-              username: janedoe
-              password: hunter2-Str0ng!
+              requested_username: janedoe
+              requested_password: hunter2-Str0ng!
       responses:
         '200':
           description: Customer registered successfully.
