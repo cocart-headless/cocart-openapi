@@ -259,6 +259,97 @@ paths:
                     message: Display name cannot be set to an email address for security reasons.
                     data:
                       status: 403
+  /my-account/address:
+    patch:
+      tags:
+      - my-account
+      summary: Update account address
+      description: |
+        Updates the authenticated customer's saved billing and/or shipping address,
+        independently of checkout. Unlike checkout's address handling, billing and
+        shipping are updated independently - there is no "use shipping for billing"
+        copying, and no shipping packages are recalculated since there's no active
+        cart context involved. At least one of `billing_address` or
+        `shipping_address` must be provided. Only the fields included are updated;
+        omitted fields are left unchanged.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountAddressUpdateRequest'
+            example:
+              billing_address:
+                first_name: John
+                last_name: Doe
+                address_1: 123 Main Street
+                city: Beverly Hills
+                state: CA
+                postcode: '90210'
+                country: US
+      responses:
+        '200':
+          description: Address updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountAddressUpdateResult'
+              example:
+                addresses:
+                  billing:
+                    first_name: John
+                    last_name: Doe
+                    company: ''
+                    address_1: 123 Main Street
+                    address_2: ''
+                    city: Beverly Hills
+                    state: CA
+                    postcode: '90210'
+                    country: US
+                    email: john.doe@example.com
+                    phone: +1-555-123-4567
+                  shipping:
+                    first_name: John
+                    last_name: Doe
+                    company: ''
+                    address_1: 123 Main Street
+                    address_2: ''
+                    city: Beverly Hills
+                    state: CA
+                    postcode: '90210'
+                    country: US
+        '400':
+          description: Bad request - no address data provided, or a field failed validation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                no_data:
+                  summary: No address data provided
+                  value:
+                    code: cocart_no_address_data
+                    message: No address data provided.
+                    data:
+                      status: 400
+                invalid_fields:
+                  summary: One or more fields failed validation
+                  value:
+                    code: cocart_invalid_address_fields
+                    message: Please provide a valid email address.
+                    data:
+                      status: 400
+        '403':
+          description: Forbidden - you need to be logged in to update the address.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_access_my_account_denied
+                message: You need to be logged in to view account!
+                data:
+                  status: 403
   /my-account/downloads:
     get:
       tags:
@@ -416,6 +507,7 @@ paths:
                 $ref: '#/components/schemas/CustomerOrder'
               example:
                 order_id: 1234
+                order_key: wc_order_abc123
                 order_number: '1234'
                 order_parent: 0
                 order_date: March 12, 2026, 2:45 pm
@@ -457,7 +549,10 @@ paths:
                 order_note: ''
                 order_notes: []
                 downloads: []
-                order_actions: {}
+                order_actions:
+                  cancel:
+                    url: https://example-store.com/wp-json/cocart/v2/my-account/orders/1234/cancel
+                    label: Cancel
         '403':
           description: Forbidden - not logged in and no matching billing email provided.
           content:
@@ -471,6 +566,71 @@ paths:
                   status: 403
         '404':
           description: Not found - the order does not exist or the billing email does not match.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_order_does_not_exist
+                message: Order #1234 does not exist.
+                data:
+                  status: 404
+  /my-account/orders/{id}/cancel:
+    post:
+      tags:
+      - my-account
+      summary: Cancel an order
+      description: |
+        Cancels a pending or failed order belonging to the authenticated customer.
+        Mirrors the classic My Account "Cancel order" action - order status is
+        validated, an order note is added, and the `woocommerce_cancelled_order`
+        action fires so stock restoration and any cancellation notifications hooked
+        onto that action behave the same as cancelling from the classic My Account
+        page. Only orders with a status of `pending` or `failed` can be cancelled
+        by default (filterable via
+        `cocart_get_account_orders_action_valid_statuses_for_cancel`).
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier for the order.
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Order cancelled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelOrderResult'
+              example:
+                success: true
+                order_id: 1234
+                order_status: Cancelled
+        '400':
+          description: Bad request - the order's current status does not allow cancellation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_order_cannot_be_cancelled
+                message: This order can no longer be cancelled. Please contact us if you need assistance.
+                data:
+                  status: 400
+        '403':
+          description: Forbidden - you need to be logged in to cancel an order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_access_my_orders_denied
+                message: You are not logged in! Cannot cancel order.
+                data:
+                  status: 403
+        '404':
+          description: Not found - the order does not exist or does not belong to the authenticated customer.
           content:
             application/json:
               schema:
@@ -700,6 +860,49 @@ components:
         phone:
           type: string
           description: Phone number (billing only).
+    AccountAddressUpdateRequest:
+      type: object
+      description: |
+        At least one of `billing_address` or `shipping_address` must be provided.
+        Only the fields included in each address object are updated; omitted
+        fields are left unchanged.
+      properties:
+        billing_address:
+          type: object
+          description: Billing address fields to update.
+          additionalProperties: true
+        shipping_address:
+          type: object
+          description: Shipping address fields to update.
+          additionalProperties: true
+    AccountAddressUpdateResult:
+      type: object
+      description: The result of updating the customer's saved address(es).
+      properties:
+        addresses:
+          type: object
+          description: The customer addresses after the update.
+          additionalProperties:
+            $ref: '#/components/schemas/AccountAddress'
+      required:
+        - addresses
+    CancelOrderResult:
+      type: object
+      description: The result of cancelling an order.
+      properties:
+        success:
+          type: boolean
+          description: Whether the order was cancelled.
+        order_id:
+          type: integer
+          description: Unique identifier for the order.
+        order_status:
+          type: string
+          description: Order status after cancellation.
+      required:
+        - success
+        - order_id
+        - order_status
     CustomerDownload:
       type: object
       properties:
@@ -778,6 +981,9 @@ components:
         order_id:
           type: integer
           description: Unique identifier for the order.
+        order_key:
+          type: string
+          description: Order key for verification, required to pay for the order.
         order_number:
           type: string
           description: Order number.
