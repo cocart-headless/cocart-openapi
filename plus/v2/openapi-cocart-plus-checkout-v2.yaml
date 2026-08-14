@@ -242,14 +242,14 @@ paths:
                   summary: Query too short
                   value:
                     code: cocart_address_search_invalid_query
-                    message: The search query must be at least 3 characters long.
+                    message: Query must be at least 3 characters.
                     data:
                       status: 400
                 country_not_supported:
                   summary: Country not supported by provider
                   value:
                     code: cocart_address_search_country_not_supported
-                    message: The selected address provider does not support this country.
+                    message: 'Address search not supported for country: XX'
                     data:
                       status: 400
         '500':
@@ -263,7 +263,7 @@ paths:
                   summary: No provider available
                   value:
                     code: cocart_address_search_no_provider
-                    message: No address autocomplete provider is available.
+                    message: No address provider available.
                     data:
                       status: 500
                 search_error:
@@ -321,7 +321,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 code: cocart_address_details_missing_id
-                message: An address ID is required.
+                message: Address ID is required.
                 data:
                   status: 400
         '404':
@@ -332,7 +332,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 code: cocart_address_details_not_found
-                message: No address details were found for the given ID.
+                message: Address not found.
                 data:
                   status: 404
         '500':
@@ -346,14 +346,14 @@ paths:
                   summary: No provider available
                   value:
                     code: cocart_address_details_no_provider
-                    message: No address autocomplete provider is available.
+                    message: No address provider available.
                     data:
                       status: 500
                 invalid:
                   summary: Resolved address missing required fields
                   value:
                     code: cocart_address_details_invalid
-                    message: The resolved address is missing required fields.
+                    message: 'Invalid address: missing address_1'
                     data:
                       status: 500
                 error:
@@ -474,7 +474,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 code: cocart_rest_authentication_required
-                message: A valid cart key or an authenticated customer is required.
+                message: Authentication or valid cart key required.
                 data:
                   status: 401
     put:
@@ -503,7 +503,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 code: cocart_rest_authentication_required
-                message: A valid cart key or an authenticated customer is required.
+                message: Authentication or valid cart key required.
                 data:
                   status: 401
     patch:
@@ -530,7 +530,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 code: cocart_rest_authentication_required
-                message: A valid cart key or an authenticated customer is required.
+                message: Authentication or valid cart key required.
                 data:
                   status: 401
     post:
@@ -678,126 +678,126 @@ paths:
                   summary: Cart is empty
                   value:
                     code: cocart_cant_checkout_empty_cart
-                    message: You cannot checkout with an empty cart.
+                    message: Cannot checkout with empty cart.
                     data:
                       status: 400
                 missing_field:
                   summary: Required billing field missing
                   value:
                     code: cocart_address_field_required
-                    message: Billing address_1 is required.
+                    message: Address 1 is required.
                     data:
                       status: 400
                 invalid_email:
                   summary: Invalid billing email
                   value:
                     code: cocart_invalid_email_address
-                    message: Please provide a valid email address.
+                    message: The email address "john.doe@example" is not valid.
                     data:
                       status: 400
                 invalid_phone:
                   summary: Invalid billing phone
                   value:
                     code: cocart_invalid_phone_number
-                    message: Please provide a valid phone number.
+                    message: The phone number "123" is not valid.
                     data:
                       status: 400
                 invalid_billing_country:
                   summary: Invalid billing country code
                   value:
                     code: cocart_invalid_billing_country_code
-                    message: This billing country is not allowed for this store.
+                    message: 'Invalid billing country: XX. Please select a valid country.'
                     data:
                       status: 400
                 invalid_billing_postcode:
                   summary: Invalid billing postcode
                   value:
                     code: cocart_invalid_billing_postcode
-                    message: Please enter a valid billing postcode / zip.
+                    message: The postcode <strong>ABC</strong> is not valid for United States (US).
                     data:
                       status: 400
                 invalid_shipping_country:
                   summary: Invalid shipping country code
                   value:
                     code: cocart_invalid_shipping_country_code
-                    message: This shipping country is not allowed for this store.
+                    message: 'Invalid shipping country: XX. Please select a valid country.'
                     data:
                       status: 400
                 invalid_shipping_postcode:
                   summary: Invalid shipping postcode
                   value:
                     code: cocart_invalid_shipping_postcode
-                    message: Please enter a valid shipping postcode / zip.
+                    message: The postcode <strong>ABC</strong> is not valid for United States (US).
                     data:
                       status: 400
                 product_not_exists:
                   summary: A cart item no longer exists
                   value:
                     code: cocart_product_not_exists
-                    message: This product no longer exists.
+                    message: A product in your cart no longer exists and has been removed.
                     data:
                       status: 400
                 product_not_purchasable:
                   summary: A cart item is not purchasable
                   value:
                     code: cocart_product_not_purchasable
-                    message: This product cannot be purchased.
+                    message: '"Premium Quality T-Shirt" is not available for purchase.'
                     data:
                       status: 400
                 product_out_of_stock:
                   summary: A cart item is out of stock
                   value:
                     code: cocart_product_out_of_stock
-                    message: This product is out of stock.
+                    message: '"Premium Quality T-Shirt" is out of stock and cannot be purchased.'
                     data:
                       status: 400
                 insufficient_stock:
                   summary: A cart item exceeds available stock
                   value:
                     code: cocart_insufficient_stock
-                    message: There is not enough stock available for this product.
+                    message: Insufficient stock for "Premium Quality T-Shirt". Only 1 remaining.
                     data:
                       status: 400
                 invalid_coupon:
                   summary: An applied coupon is no longer valid
                   value:
                     code: cocart_invalid_coupon
-                    message: An applied coupon is no longer valid and has been removed.
+                    message: The coupon "summer10" is no longer valid and has been removed.
                     data:
                       status: 400
                 coupon_email_restricted:
                   summary: Coupon restricted to certain emails
                   value:
                     code: cocart_coupon_email_restricted
-                    message: This coupon is not valid for your email address.
+                    message: The coupon "summer10" is not valid for your email address and has been removed.
                     data:
                       status: 400
                 coupon_usage_limit:
                   summary: Coupon usage limit reached
                   value:
                     code: cocart_coupon_usage_limit
-                    message: This coupon has reached its usage limit for your account.
+                    message: You have reached the usage limit for coupon "summer10".
                     data:
                       status: 400
                 no_shipping_method:
                   summary: No shipping method chosen
                   value:
                     code: cocart_no_shipping_method
-                    message: Please choose a shipping method.
+                    message: Please select a shipping method.
                     data:
                       status: 400
                 invalid_shipping_method:
                   summary: Chosen shipping method is not available
                   value:
                     code: cocart_invalid_shipping_method
-                    message: The chosen shipping method is no longer available.
+                    message: 'The shipping method "flat_rate:1" is not available.'
                     data:
                       status: 400
                 invalid_payment_method:
                   summary: Payment method does not exist
                   value:
                     code: cocart_invalid_payment_method
-                    message: This payment method does not exist.
+                    message: Invalid payment method.
                     data:
                       status: 400
                 payment_method_disabled:
@@ -811,21 +811,21 @@ paths:
                   summary: Payment method does not support subscriptions in cart
                   value:
                     code: cocart_payment_method_no_subscription_support
-                    message: This payment method does not support the subscription product in your cart.
+                    message: The payment method "Stripe" does not support subscriptions. Please choose a different payment method.
                     data:
                       status: 400
                 payment_method_not_available:
                   summary: Payment method not available for this order
                   value:
                     code: cocart_payment_method_not_available
-                    message: This payment method is not available for this order.
+                    message: This payment method is not available for your order.
                     data:
                       status: 400
                 account_creation_failed:
                   summary: Guest account creation failed
                   value:
                     code: cocart_account_creation_failed
-                    message: An account could not be created for you. Please try again.
+                    message: An account with this email address already exists.
                     data:
                       status: 400
         '401':
@@ -836,7 +836,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 code: cocart_rest_authentication_required
-                message: A valid cart key or an authenticated customer is required.
+                message: Authentication or valid cart key required.
                 data:
                   status: 401
   /checkout/payment-methods:
@@ -875,6 +875,7 @@ paths:
                     supports_refunds: true
                     supports_subscriptions: false
                     requires_billing_address: true
+                    restricted_to_shipping_methods: null
                   saved_tokens:
                     - id: '42'
                       token: Visa ending in 4242
@@ -899,6 +900,7 @@ paths:
                     supports_refunds: false
                     supports_subscriptions: false
                     requires_billing_address: false
+                    restricted_to_shipping_methods: null
                   saved_tokens: []
                   supports_save_payment: false
         '401':
@@ -909,7 +911,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 code: cocart_rest_authentication_required
-                message: A valid cart key or an authenticated customer is required.
+                message: Authentication or valid cart key required.
                 data:
                   status: 401
   /order-received/{order_id}:
@@ -1006,27 +1008,37 @@ paths:
                 needs_shipping: true
                 has_downloads: false
         '400':
-          description: Bad request - the order key does not match.
+          description: Bad request - the order ID or order key parameter is missing or empty.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                code: cocart_order_key_mismatch
-                message: The order key provided does not match this order.
+                code: cocart_order_invalid_params
+                message: Order ID and order key are required.
                 data:
                   status: 400
         '403':
-          description: Forbidden - a logged-in customer does not own this order.
+          description: Forbidden - the order key does not match, or a logged-in customer does not own this order.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_order_access_denied
-                message: You do not have permission to view this order.
-                data:
-                  status: 403
+              examples:
+                invalid_key:
+                  summary: Order key does not match
+                  value:
+                    code: cocart_order_invalid_key
+                    message: Invalid order key.
+                    data:
+                      status: 403
+                not_owned:
+                  summary: Logged-in customer does not own this order
+                  value:
+                    code: cocart_order_not_owned
+                    message: You do not have permission to access this order.
+                    data:
+                      status: 403
         '404':
           description: Not found - the order does not exist.
           content:
@@ -1035,7 +1047,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 code: cocart_order_not_found
-                message: This order does not exist.
+                message: Order not found.
                 data:
                   status: 404
   /order-received/{order_id}/pay:
@@ -1098,31 +1110,38 @@ paths:
                 order_status: processing
                 redirect_url: https://example-store.com/checkout/order-received/1234/?key=wc_order_abc123
         '400':
-          description: Bad request - the order does not need payment, has an invalid status, the payment method is invalid, the order key does not match, or the payment failed.
+          description: Bad request - the order ID or order key parameter is missing/empty, the order does not need payment, has an invalid status, the payment method is invalid, or the payment failed.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
+                invalid_params:
+                  summary: Order ID or order key missing
+                  value:
+                    code: cocart_order_invalid_params
+                    message: Order ID and order key are required.
+                    data:
+                      status: 400
                 no_payment_needed:
                   summary: Order does not need payment
                   value:
                     code: cocart_order_no_payment_needed
-                    message: This order does not need payment.
+                    message: This order does not require payment.
                     data:
                       status: 400
                 invalid_status:
                   summary: Order status does not allow payment
                   value:
                     code: cocart_order_invalid_status
-                    message: This order cannot be paid for in its current status.
+                    message: This order cannot be paid for.
                     data:
                       status: 400
                 invalid_payment_method:
                   summary: Payment method does not exist
                   value:
                     code: cocart_invalid_payment_method
-                    message: This payment method does not exist.
+                    message: Invalid payment method.
                     data:
                       status: 400
                 payment_method_disabled:
@@ -1136,14 +1155,14 @@ paths:
                   summary: Payment method does not support subscriptions in the order
                   value:
                     code: cocart_payment_method_no_subscription_support
-                    message: This payment method does not support the subscription product in this order.
+                    message: The payment method "Stripe" does not support subscriptions. Please choose a different payment method.
                     data:
                       status: 400
                 payment_method_not_available:
                   summary: Payment method not available for this order
                   value:
                     code: cocart_payment_method_not_available
-                    message: This payment method is not available for this order.
+                    message: This payment method is not available for your order.
                     data:
                       status: 400
                 payment_failed:
@@ -1154,16 +1173,26 @@ paths:
                     data:
                       status: 400
         '403':
-          description: Forbidden - a logged-in customer does not own this order.
+          description: Forbidden - the order key does not match, or a logged-in customer does not own this order.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_order_access_denied
-                message: You do not have permission to pay for this order.
-                data:
-                  status: 403
+              examples:
+                invalid_key:
+                  summary: Order key does not match
+                  value:
+                    code: cocart_order_invalid_key
+                    message: Invalid order key.
+                    data:
+                      status: 403
+                not_owned:
+                  summary: Logged-in customer does not own this order
+                  value:
+                    code: cocart_order_not_owned
+                    message: You do not have permission to access this order.
+                    data:
+                      status: 403
         '404':
           description: Not found - the order does not exist.
           content:
@@ -1275,38 +1304,21 @@ components:
               total_tax: '0'
             message: Checkout data updated.
     CheckoutUpdateBadRequest:
-      description: Bad request - one or more address fields failed validation. Nothing is persisted when validation fails.
+      description: |
+        Bad request - one or more address fields failed validation. Nothing is
+        persisted when validation fails. All field errors for a single request
+        are combined under one `cocart_invalid_address_fields` error code, with
+        the individual messages joined by spaces into `message`.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           examples:
-            invalid_email:
-              summary: Invalid email address
+            invalid_address_fields:
+              summary: One or more address fields failed validation
               value:
-                code: cocart_invalid_email_address
-                message: Please provide a valid email address.
-                data:
-                  status: 400
-            invalid_phone:
-              summary: Invalid phone number
-              value:
-                code: cocart_invalid_phone_number
-                message: Please provide a valid phone number.
-                data:
-                  status: 400
-            invalid_postcode:
-              summary: Invalid postcode for the given country
-              value:
-                code: cocart_invalid_postcode
-                message: Please enter a valid postcode / zip.
-                data:
-                  status: 400
-            invalid_country:
-              summary: Country not allowed for this store
-              value:
-                code: cocart_invalid_country_code
-                message: This country is not allowed for this store.
+                code: cocart_invalid_address_fields
+                message: Please provide a valid email address. Please provide a valid phone number.
                 data:
                   status: 400
   securitySchemes:
@@ -2271,6 +2283,12 @@ components:
           type: boolean
         requires_billing_address:
           type: boolean
+        restricted_to_shipping_methods:
+          type: array
+          nullable: true
+          description: Shipping rate IDs the gateway is restricted to (e.g. via a "Enable for shipping methods" setting), or null if unrestricted.
+          items:
+            type: string
     PaymentToken:
       type: object
       properties:
