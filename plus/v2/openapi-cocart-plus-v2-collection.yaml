@@ -889,12 +889,22 @@ paths:
               account_email: john.doe@example.com
       responses:
         '200':
-          description: Account details updated successfully. Returns `true`.
+          description: Account details updated successfully.
           content:
             application/json:
               schema:
-                type: boolean
-              example: true
+                $ref: '#/components/schemas/AccountUpdateResult'
+              examples:
+                updated:
+                  summary: Updated immediately
+                  value:
+                    success: true
+                    email_verification_pending: false
+                pending_verification:
+                  summary: Email change pending verification
+                  value:
+                    success: true
+                    email_verification_pending: true
         '400':
           description: Bad request - missing required field, invalid email or password validation failed.
           content:
@@ -910,11 +920,46 @@ paths:
                     data:
                       status: 400
                       id: account_first_name
+                invalid_email:
+                  summary: Invalid email address
+                  value:
+                    code: cocart_account_provide_valid_email
+                    message: Please provide a valid email address.
+                    data:
+                      status: 400
+                fill_all_password_fields:
+                  summary: Current password given but new password fields empty
+                  value:
+                    code: cocart_account_fill_all_password_fields
+                    message: Please fill out all password fields.
+                    data:
+                      status: 400
+                enter_current_password:
+                  summary: New password given without current password
+                  value:
+                    code: cocart_account_enter_current_password
+                    message: Please enter your current password.
+                    data:
+                      status: 400
+                reenter_password:
+                  summary: New password confirmation missing
+                  value:
+                    code: cocart_account_reenter_password
+                    message: Please re-enter your password.
+                    data:
+                      status: 400
                 passwords_mismatch:
                   summary: New passwords do not match
                   value:
                     code: cocart_account_new_passwords_do_not_match
                     message: New passwords do not match.
+                    data:
+                      status: 400
+                incorrect_current_password:
+                  summary: Current password is incorrect
+                  value:
+                    code: cocart_account_incorrect_current_password
+                    message: Your current password is incorrect.
                     data:
                       status: 400
         '403':
@@ -923,9 +968,113 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                email_registered:
+                  summary: Email already registered to another account
+                  value:
+                    code: cocart_account_email_already_registered
+                    message: This email address is already registered.
+                    data:
+                      status: 403
+                display_name_is_email:
+                  summary: Display name set to an email address
+                  value:
+                    code: cocart_cannot_set_email_as_display_name
+                    message: Display name cannot be set to an email address for security reasons.
+                    data:
+                      status: 403
+      security:
+        - basicAuth: []
+        - bearerAuth: []
+  /my-account/address:
+    patch:
+      tags:
+        - my-account
+      summary: Update account address
+      description: |
+        Updates the authenticated customer's saved billing and/or shipping address,
+        independently of checkout. Unlike checkout's address handling, billing and
+        shipping are updated independently - there is no "use shipping for billing"
+        copying, and no shipping packages are recalculated since there's no active
+        cart context involved. At least one of `billing_address` or
+        `shipping_address` must be provided. Only the fields included are updated;
+        omitted fields are left unchanged.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountAddressUpdateRequest'
+            example:
+              billing_address:
+                first_name: John
+                last_name: Doe
+                address_1: 123 Main Street
+                city: Beverly Hills
+                state: CA
+                postcode: '90210'
+                country: US
+      responses:
+        '200':
+          description: Address updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountAddressUpdateResult'
               example:
-                code: cocart_account_email_already_registered
-                message: This email address is already registered.
+                addresses:
+                  billing:
+                    first_name: John
+                    last_name: Doe
+                    company: ''
+                    address_1: 123 Main Street
+                    address_2: ''
+                    city: Beverly Hills
+                    state: CA
+                    postcode: '90210'
+                    country: US
+                    email: john.doe@example.com
+                    phone: +1-555-123-4567
+                  shipping:
+                    first_name: John
+                    last_name: Doe
+                    company: ''
+                    address_1: 123 Main Street
+                    address_2: ''
+                    city: Beverly Hills
+                    state: CA
+                    postcode: '90210'
+                    country: US
+        '400':
+          description: Bad request - no address data provided, or a field failed validation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                no_data:
+                  summary: No address data provided
+                  value:
+                    code: cocart_no_address_data
+                    message: No address data provided.
+                    data:
+                      status: 400
+                invalid_fields:
+                  summary: One or more fields failed validation
+                  value:
+                    code: cocart_invalid_address_fields
+                    message: Please provide a valid email address.
+                    data:
+                      status: 400
+        '403':
+          description: Forbidden - you need to be logged in to update the address.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_access_my_account_denied
+                message: You need to be logged in to view account!
                 data:
                   status: 403
       security:
@@ -1092,6 +1241,7 @@ paths:
                 $ref: '#/components/schemas/CustomerOrder'
               example:
                 order_id: 1234
+                order_key: wc_order_abc123
                 order_number: '1234'
                 order_parent: 0
                 order_date: March 12, 2026, 2:45 pm
@@ -1133,7 +1283,10 @@ paths:
                 order_note: ''
                 order_notes: []
                 downloads: []
-                order_actions: {}
+                order_actions:
+                  cancel:
+                    url: https://example-store.com/wp-json/cocart/v2/my-account/orders/1234/cancel
+                    label: Cancel
         '403':
           description: Forbidden - not logged in and no matching billing email provided.
           content:
@@ -1153,12 +1306,139 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 code: cocart_order_does_not_exist
-                message: Order
+                message: Order #1234 does not exist.
                 data:
                   status: 404
       security:
         - basicAuth: []
         - bearerAuth: []
+  /my-account/orders/{id}/cancel:
+    post:
+      tags:
+        - my-account
+      summary: Cancel an order
+      description: |
+        Cancels a pending or failed order belonging to the authenticated customer.
+        Mirrors the classic My Account "Cancel order" action - order status is
+        validated, an order note is added, and the `woocommerce_cancelled_order`
+        action fires so stock restoration and any cancellation notifications hooked
+        onto that action behave the same as cancelling from the classic My Account
+        page. Only orders with a status of `pending` or `failed` can be cancelled
+        by default (filterable via
+        `cocart_get_account_orders_action_valid_statuses_for_cancel`).
+      parameters:
+        - name: id
+          in: path
+          description: Unique identifier for the order.
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Order cancelled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelOrderResult'
+              example:
+                success: true
+                order_id: 1234
+                order_status: Cancelled
+        '400':
+          description: Bad request - the order's current status does not allow cancellation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_order_cannot_be_cancelled
+                message: This order can no longer be cancelled. Please contact us if you need assistance.
+                data:
+                  status: 400
+        '403':
+          description: Forbidden - you need to be logged in to cancel an order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_access_my_orders_denied
+                message: You are not logged in! Cannot cancel order.
+                data:
+                  status: 403
+        '404':
+          description: Not found - the order does not exist or does not belong to the authenticated customer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_order_does_not_exist
+                message: Order #1234 does not exist.
+                data:
+                  status: 404
+      security:
+        - basicAuth: []
+        - bearerAuth: []
+  /my-account/verify-email:
+    get:
+      tags:
+        - my-account
+      summary: Verify pending email change
+      description: |
+        Confirms a pending email address change initiated via
+        `POST /my-account` and applies the new email to the user account and
+        billing address. This endpoint is intentionally public (no
+        authentication required) since the confirmation link is opened from an
+        email client that may not share a session with the requester -
+        possession of the emailed `key` is the proof of ownership. The link
+        expires after 24 hours by default.
+      parameters:
+        - name: key
+          in: query
+          description: The verification key sent to the pending new email address.
+          required: true
+          schema:
+            type: string
+        - name: user_id
+          in: query
+          description: The user ID the pending email change belongs to.
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Email address verified and updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyEmailResult'
+              example:
+                success: true
+                email: john.doe@example.com
+        '400':
+          description: Bad request - the verification key is invalid, expired, or does not match.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_invalid_or_expired_key
+                message: This confirmation link is invalid or has expired.
+                data:
+                  status: 400
+        '403':
+          description: Forbidden - the pending email address is already registered to a different user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_account_email_already_registered
+                message: This email address is already registered.
+                data:
+                  status: 403
+      security: []
   /register:
     post:
       tags:
@@ -2100,6 +2380,36 @@ components:
           type: object
           description: Additional data added by third-party extensions via the `cocart_get_account_extensions` filter.
           additionalProperties: true
+    AccountUpdateResult:
+      type: object
+      description: The result of updating the customer's account details.
+      properties:
+        success:
+          type: boolean
+          description: Whether the account details were saved.
+        email_verification_pending:
+          type: boolean
+          description: |
+            True when an email address change was requested and is awaiting
+            confirmation via `GET /my-account/verify-email` - the account's
+            email address has not changed yet. False when there was no email
+            change, or verification is disabled and the email updated immediately.
+      required:
+        - success
+        - email_verification_pending
+    VerifyEmailResult:
+      type: object
+      description: The result of confirming a pending email address change.
+      properties:
+        success:
+          type: boolean
+        email:
+          type: string
+          format: email
+          description: The email address that was applied to the account.
+      required:
+        - success
+        - email
     AccountAddress:
       type: object
       properties:
@@ -2137,6 +2447,49 @@ components:
         phone:
           type: string
           description: Phone number (billing only).
+    AccountAddressUpdateRequest:
+      type: object
+      description: |
+        At least one of `billing_address` or `shipping_address` must be provided.
+        Only the fields included in each address object are updated; omitted
+        fields are left unchanged.
+      properties:
+        billing_address:
+          type: object
+          description: Billing address fields to update.
+          additionalProperties: true
+        shipping_address:
+          type: object
+          description: Shipping address fields to update.
+          additionalProperties: true
+    AccountAddressUpdateResult:
+      type: object
+      description: The result of updating the customer's saved address(es).
+      properties:
+        addresses:
+          type: object
+          description: The customer addresses after the update.
+          additionalProperties:
+            $ref: '#/components/schemas/AccountAddress'
+      required:
+        - addresses
+    CancelOrderResult:
+      type: object
+      description: The result of cancelling an order.
+      properties:
+        success:
+          type: boolean
+          description: Whether the order was cancelled.
+        order_id:
+          type: integer
+          description: Unique identifier for the order.
+        order_status:
+          type: string
+          description: Order status after cancellation.
+      required:
+        - success
+        - order_id
+        - order_status
     CustomerDownload:
       type: object
       properties:
@@ -2215,6 +2568,9 @@ components:
         order_id:
           type: integer
           description: Unique identifier for the order.
+        order_key:
+          type: string
+          description: Order key for verification, required to pay for the order.
         order_number:
           type: string
           description: Order number.
