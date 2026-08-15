@@ -823,7 +823,9 @@ paths:
                 meta:
                   is_customer_outside_base: false
                   is_vat_exempt: false
-                extensions: {}
+                extensions:
+                  email_verification:
+                    verified: false
         '403':
           description: Forbidden - you need to be logged in to view the account.
           content:
@@ -1439,6 +1441,148 @@ paths:
                 data:
                   status: 403
       security: []
+  /my-account/verify-order-email:
+    post:
+      tags:
+        - my-account
+      summary: Send order email verification
+      description: |
+        Sends (or resends) a confirmation email to the authenticated customer's
+        account email address, proving they own it so WooCommerce can link any
+        past guest orders placed with the same billing email to the account.
+        The customer confirms via `GET /my-account/verify-order-email`, using
+        the `key` and `user_id` carried in the emailed link. Resending is
+        throttled to once every 60 seconds - a request within that window
+        returns `status: throttled` rather than sending a new email or minting
+        a new key. Requires WooCommerce 11.0+.
+      responses:
+        '200':
+          description: Request processed. Check `status` to tell a new email from a throttled resend.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendOrderEmailVerificationResult'
+              examples:
+                sent:
+                  summary: Verification email sent
+                  value:
+                    success: true
+                    status: sent
+                throttled:
+                  summary: Resent within the 60 second rate limit
+                  value:
+                    success: true
+                    status: throttled
+        '400':
+          description: Bad request - the account email address is already verified.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_email_already_verified
+                message: Your account email address is already verified.
+                data:
+                  status: 400
+        '403':
+          description: Forbidden - you need to be logged in to verify your email.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_access_my_account_denied
+                message: You need to be logged in to view account!
+                data:
+                  status: 403
+        '501':
+          description: Not implemented - requires WooCommerce 11.0 or higher.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_woocommerce_feature_unavailable
+                message: This feature requires WooCommerce 11.0 or higher.
+                data:
+                  status: 501
+      security:
+        - basicAuth: []
+        - bearerAuth: []
+    get:
+      tags:
+        - my-account
+      summary: Confirm order email verification
+      description: |
+        Confirms the verification key emailed via
+        `POST /my-account/verify-order-email`, marking the account email
+        address verified and letting WooCommerce link any matching guest
+        orders to the account. Unlike `GET /my-account/verify-email`, this
+        endpoint requires the request be authenticated as the key's target
+        user - matching WooCommerce core's own rule that only a request
+        authenticated as the link's target user can complete verification, so
+        a leaked key with no session behind it (or a session for a different
+        account) can never link orders to the wrong customer. Requires
+        WooCommerce 11.0+.
+      parameters:
+        - name: key
+          in: query
+          description: The verification key emailed to confirm ownership of the account email address.
+          required: true
+          schema:
+            type: string
+        - name: user_id
+          in: query
+          description: The WordPress user ID the verification belongs to.
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Email address verified successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyOrderEmailResult'
+              example:
+                success: true
+                email: john.doe@example.com
+        '400':
+          description: Bad request - the verification key is invalid or has expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_invalid_or_expired_key
+                message: This confirmation link is invalid or has expired.
+                data:
+                  status: 400
+        '403':
+          description: Forbidden - not logged in, or logged in as a different account than the key's target user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_access_my_account_denied
+                message: You need to be logged in to view account!
+                data:
+                  status: 403
+        '501':
+          description: Not implemented - requires WooCommerce 11.0 or higher.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_woocommerce_feature_unavailable
+                message: This feature requires WooCommerce 11.0 or higher.
+                data:
+                  status: 501
+      security:
+        - basicAuth: []
+        - bearerAuth: []
   /register:
     post:
       tags:
@@ -2378,7 +2522,12 @@ components:
               description: Whether the customer is VAT exempt.
         extensions:
           type: object
-          description: Additional data added by third-party extensions via the `cocart_get_account_extensions` filter.
+          description: |
+            Additional data added by third-party extensions via the
+            `cocart_get_account_extensions` filter. Includes
+            `email_verification.verified` (WooCommerce 11.0+ only) - whether
+            the account email address has been confirmed via
+            `POST /my-account/verify-order-email`.
           additionalProperties: true
     AccountUpdateResult:
       type: object
@@ -2407,6 +2556,37 @@ components:
           type: string
           format: email
           description: The email address that was applied to the account.
+      required:
+        - success
+        - email
+    SendOrderEmailVerificationResult:
+      type: object
+      description: The result of requesting an order email verification.
+      properties:
+        success:
+          type: boolean
+        status:
+          type: string
+          description: |
+            `sent` when a new verification email was minted and sent,
+            `throttled` when a resend was requested within the 60 second
+            rate-limit window and no new email was sent.
+          enum:
+            - sent
+            - throttled
+      required:
+        - success
+        - status
+    VerifyOrderEmailResult:
+      type: object
+      description: The result of confirming ownership of the account email address.
+      properties:
+        success:
+          type: boolean
+        email:
+          type: string
+          format: email
+          description: The account email address that was verified.
       required:
         - success
         - email
