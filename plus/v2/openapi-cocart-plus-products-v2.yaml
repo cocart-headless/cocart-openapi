@@ -47,6 +47,8 @@ paths:
         because shipping rate calculation must not be associated with a specific cart.
 
         External and grouped product types cannot be calculated and return a 403 error.
+
+        The `id` may also be a SKU, resolved to a product ID first.
       parameters:
       - name: id
         in: path
@@ -129,17 +131,77 @@ paths:
                     message: This product is external, therefore it cannot be calculated for shipping rates.
                     data:
                       status: 403
+                grouped_denied:
+                  summary: Grouped product
+                  value:
+                    code: cocart_calculate_product_shipping_grouped_types_denied
+                    message: This product is a group of products, therefore it cannot be calculated for shipping rates.
+                    data:
+                      status: 403
         '404':
-          description: Not found - the product or variation is invalid.
+          description: Not found - the product ID, SKU or variation is invalid or missing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_product:
+                  summary: Product is invalid (unpublished, or has no valid ID)
+                  value:
+                    code: cocart_invalid_product
+                    message: This product is invalid.
+                    data:
+                      status: 404
+                invalid_variation:
+                  summary: Variation ID does not belong to the parent product
+                  value:
+                    code: cocart_variation_invalid_id
+                    message: Invalid variation ID.
+                    data:
+                      status: 404
+                product_id_required:
+                  summary: No product ID or SKU provided
+                  value:
+                    code: cocart_product_id_required
+                    message: Product ID number is required!
+                    data:
+                      status: 404
+                unknown_product_id:
+                  summary: Product ID or SKU does not match any product
+                  value:
+                    code: cocart_unknown_product_id
+                    message: Product does not exist! Check that you have submitted a product ID or SKU ID correctly for a product that exists.
+                    data:
+                      status: 404
+                not_loaded:
+                  summary: CoCart core is not active
+                  value:
+                    code: cocart_not_loaded
+                    message: Either the core of CoCart is not active or a specific class required does not exist.
+                    data:
+                      status: 404
+        '405':
+          description: Method not allowed - the resolved product ID is not numeric.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                code: cocart_invalid_product
-                message: This product is invalid.
+                code: cocart_product_id_not_numeric
+                message: Product ID must be numeric!
                 data:
-                  status: 404
+                  status: 405
+        '500':
+          description: Internal server error - the product could not be added to the shipping calculation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_calculate_product_shipping_rates_failed
+                message: Product could not be calculated!
+                data:
+                  status: 500
 components:
   securitySchemes:
     basicAuth:

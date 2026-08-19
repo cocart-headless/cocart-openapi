@@ -113,7 +113,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/CouponResponse"
               example:
-                message: "Coupon was successfully added."
+                message: "Coupon was successfully added to cart."
                 coupon: "save10"
                 response: true
         "400":
@@ -124,7 +124,7 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
               example:
                 code: "cocart_coupon_failed_to_apply"
-                message: "Coupon \"invalid\" does not exist!"
+                message: "Coupon failed to apply to cart."
                 data:
                   status: 400
         "404":
@@ -134,8 +134,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
               example:
-                code: "cocart_coupon_required"
-                message: "Coupon is required!"
+                code: "cocart_coupon_code_required"
+                message: "No coupon code provided!"
                 data:
                   status: 404
         "500":
@@ -176,7 +176,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/CouponResponse"
               example:
-                message: "Coupon has been removed from the cart."
+                message: "Coupon was successfully removed from cart."
                 coupon: "save10"
                 response: true
         "404":
@@ -186,8 +186,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
               example:
-                code: "cocart_coupon_not_in_cart"
-                message: "Coupon \"save10\" is not applied to the cart!"
+                code: "cocart_cart_coupon_invalid_code"
+                message: "Coupon does not exist in the cart."
                 data:
                   status: 404
         "500":
@@ -224,12 +224,6 @@ paths:
               example:
                 message: "Coupons applied are still valid!"
                 response: true
-        "400":
-          description: Some coupons are invalid.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: No coupons have been applied.
           content:
@@ -238,15 +232,24 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
               example:
                 code: "cocart_no_coupons_applied"
-                message: "No coupons are applied to the cart."
+                message: "No coupons have been applied!"
                 data:
                   status: 404
         "500":
-          description: Internal server error.
+          description: |
+            Internal server error, including when one or more applied coupons
+            have expired or are no longer valid. In that case `data` is `null`
+            rather than an object with `status` - the error is constructed
+            without a `status`, so the response status also defaults to 500
+            rather than a more specific code.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: "cocart_coupons_expired"
+                message: "The following coupons have expired or no longer valid: save10"
+                data: null
       security:
         - {}
 
@@ -317,7 +320,7 @@ paths:
             application/json:
               schema:
                 type: string
-              example: "\"Gift Wrapping\" has been added as a fee."
+              example: "Fee \"Gift Wrapping\" for $5.00 has been added."
         "403":
           description: Fee already exists.
           content:
@@ -326,7 +329,7 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
               example:
                 code: "cocart_fee_already_exists"
-                message: "Fee has already been added!"
+                message: "Fee has already been added."
                 data:
                   status: 403
         "404":
@@ -335,11 +338,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-              example:
-                code: "cocart_fee_required"
-                message: "The name and amount of the fee is required!"
-                data:
-                  status: 404
+              examples:
+                missing_name:
+                  summary: Fee name missing
+                  value:
+                    code: "cocart_fee_missing_name"
+                    message: "The name of the fee is missing!"
+                    data:
+                      status: 404
+                missing_amount:
+                  summary: Fee amount missing
+                  value:
+                    code: "cocart_fee_missing_amount"
+                    message: "The amount for the fee is missing!"
+                    data:
+                      status: 404
         "500":
           description: Internal server error.
           content:
@@ -363,19 +376,21 @@ paths:
             application/json:
               schema:
                 type: string
-              example: "All fees have been removed from the cart."
-        "400":
-          description: Cart fees failed to remove.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+              example: "All cart fees have been removed."
         "500":
-          description: Internal server error.
+          description: |
+            Internal server error, including when the fees failed to remove. In
+            that case `data` is `null` rather than an object with `status` -
+            the error is constructed without a `status`, so the response
+            status also defaults to 500 rather than a more specific code.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: "cocart_removing_fees_failed"
+                message: "Cart fees failed to remove."
+                data: null
       security:
         - {}
 
@@ -411,7 +426,7 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
               example:
                 code: "cocart_no_shipping_methods"
-                message: "No shipping methods are available."
+                message: "There are no shipping methods available!"
                 data:
                   status: 404
         "500":
@@ -460,7 +475,7 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
               example:
                 code: "cocart_shipping_method_incorrect"
-                message: "The shipping method is incorrect or does not exist!"
+                message: "The shipping method is either incorrect or does not exist."
                 data:
                   status: 404
         "500":
@@ -536,7 +551,7 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
               example:
                 code: "cocart_payment_method_incorrect"
-                message: "The payment method is incorrect or does not exist!"
+                message: "The gateway ID is either incorrect or does not exist."
                 data:
                   status: 404
         "500":
@@ -759,20 +774,20 @@ paths:
                 oneOf:
                   - type: string
                     description: Success message when return_methods is false.
-                    example: "Shipping has been calculated."
+                    example: "Shipping costs updated."
                   - type: array
                     description: Array of shipping methods when return_methods is true.
                     items:
                       $ref: "#/components/schemas/ShippingMethod"
         "404":
-          description: Invalid postcode or missing country.
+          description: Invalid postcode.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
               example:
-                code: "cocart_shipping_country_required"
-                message: "Country is required to calculate shipping!"
+                code: "cocart_invalid_postcode"
+                message: "Please enter a valid postcode / ZIP."
                 data:
                   status: 404
         "500":

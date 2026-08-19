@@ -349,6 +349,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
+                coupons_not_enabled:
+                  summary: Coupons are not enabled for this store
+                  value:
+                    code: cocart_coupons_not_enabled
+                    message: Coupons are not enabled for this store!
+                    data:
+                      status: 404
+                code_required:
+                  summary: No coupon code provided
+                  value:
+                    code: cocart_coupon_code_required
+                    message: No coupon code provided!
+                    data:
+                      status: 404
                 not_exist:
                   summary: Coupon does not exist
                   value:
@@ -406,16 +420,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/CartV2'
         '404':
-          description: Not found - coupons are not enabled or the coupon is not applied to the cart.
+          description: Not found - coupons are not enabled, no code provided, or the coupon is not applied to the cart.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_coupons_not_enabled
-                message: Coupons are not enabled for this store!
-                data:
-                  status: 404
+              examples:
+                coupons_not_enabled:
+                  summary: Coupons are not enabled for this store
+                  value:
+                    code: cocart_coupons_not_enabled
+                    message: Coupons are not enabled for this store!
+                    data:
+                      status: 404
+                code_required:
+                  summary: No coupon code provided
+                  value:
+                    code: cocart_coupon_required
+                    message: No coupon code provided!
+                    data:
+                      status: 404
+                not_applied:
+                  summary: Coupon is not applied to the cart
+                  value:
+                    code: cocart_cart_coupon_invalid_code
+                    message: Coupon does not exist in the cart.
+                    data:
+                      status: 404
   /cart/add-fee:
     post:
       tags:
@@ -494,6 +525,13 @@ paths:
                     message: Name of fee is missing!
                     data:
                       status: 404
+                missing_amount:
+                  summary: Fee amount missing
+                  value:
+                    code: cocart_fee_missing_amount
+                    message: Fee amount is missing!
+                    data:
+                      status: 404
                 cannot_add:
                   summary: Cart is empty
                   value:
@@ -536,12 +574,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CartV2'
-        '404':
-          description: Not found - no fees have been added to the cart.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
   /cart/items:
     delete:
       tags:
@@ -590,12 +622,6 @@ paths:
               $ref: '#/components/headers/ETagHeader'
             CoCart-Cache:
               $ref: '#/components/headers/CoCartCacheHeader'
-        '404':
-          description: Not found - the cart has no items to remove.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
   /cart/set-shipping-method:
     post:
       tags:
@@ -655,11 +681,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/CartV2'
         '404':
-          description: Not found - shipping not available or invalid rate ID.
+          description: Not found - shipping is disabled, no rate ID provided, or shipping hasn't been calculated yet for the cart.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                shipping_disabled:
+                  summary: Shipping is disabled for this store
+                  value:
+                    code: cocart_shipping_disabled
+                    message: Shipping is disabled.
+                    data:
+                      status: 404
+                missing_rate_id:
+                  summary: No rate ID provided
+                  value:
+                    code: cocart_missing_rate_id
+                    message: Invalid Rate ID.
+                    data:
+                      status: 404
+                not_calculated:
+                  summary: Applying to all packages, but shipping hasn't been calculated yet
+                  value:
+                    code: cocart_shipping_not_calculated
+                    message: Customer has not calculated shipping.
+                    data:
+                      status: 404
   /products/{id}/shipping-rates:
     get:
       tags:
@@ -674,6 +722,8 @@ paths:
         because shipping rate calculation must not be associated with a specific cart.
 
         External and grouped product types cannot be calculated and return a 403 error.
+
+        The `id` may also be a SKU, resolved to a product ID first.
       parameters:
         - name: id
           in: path
@@ -756,17 +806,77 @@ paths:
                     message: This product is external, therefore it cannot be calculated for shipping rates.
                     data:
                       status: 403
+                grouped_denied:
+                  summary: Grouped product
+                  value:
+                    code: cocart_calculate_product_shipping_grouped_types_denied
+                    message: This product is a group of products, therefore it cannot be calculated for shipping rates.
+                    data:
+                      status: 403
         '404':
-          description: Not found - the product or variation is invalid.
+          description: Not found - the product ID, SKU or variation is invalid or missing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_product:
+                  summary: Product is invalid (unpublished, or has no valid ID)
+                  value:
+                    code: cocart_invalid_product
+                    message: This product is invalid.
+                    data:
+                      status: 404
+                invalid_variation:
+                  summary: Variation ID does not belong to the parent product
+                  value:
+                    code: cocart_variation_invalid_id
+                    message: Invalid variation ID.
+                    data:
+                      status: 404
+                product_id_required:
+                  summary: No product ID or SKU provided
+                  value:
+                    code: cocart_product_id_required
+                    message: Product ID number is required!
+                    data:
+                      status: 404
+                unknown_product_id:
+                  summary: Product ID or SKU does not match any product
+                  value:
+                    code: cocart_unknown_product_id
+                    message: Product does not exist! Check that you have submitted a product ID or SKU ID correctly for a product that exists.
+                    data:
+                      status: 404
+                not_loaded:
+                  summary: CoCart core is not active
+                  value:
+                    code: cocart_not_loaded
+                    message: Either the core of CoCart is not active or a specific class required does not exist.
+                    data:
+                      status: 404
+        '405':
+          description: Method not allowed - the resolved product ID is not numeric.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                code: cocart_invalid_product
-                message: This product is invalid.
+                code: cocart_product_id_not_numeric
+                message: Product ID must be numeric!
                 data:
-                  status: 404
+                  status: 405
+        '500':
+          description: Internal server error - the product could not be added to the shipping calculation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_calculate_product_shipping_rates_failed
+                message: Product could not be calculated!
+                data:
+                  status: 500
   /my-account:
     get:
       tags:
@@ -827,6 +937,17 @@ paths:
                 extensions:
                   email_verification:
                     verified: false
+        '400':
+          description: Bad request - the customer could not be retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_customer_error
+                message: Unable to retrieve customer.
+                data:
+                  status: 400
         '403':
           description: Forbidden - you need to be logged in to view the account.
           content:
@@ -948,7 +1069,7 @@ paths:
                   summary: New password confirmation missing
                   value:
                     code: cocart_account_reenter_password
-                    message: Please re-enter your password.
+                    message: Please re-enter your password a second time.
                     data:
                       status: 400
                 passwords_mismatch:
@@ -972,6 +1093,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
+                not_logged_in:
+                  summary: Not logged in
+                  value:
+                    code: cocart_access_my_account_denied
+                    message: You need to be logged in to view account!
+                    data:
+                      status: 403
                 email_registered:
                   summary: Email already registered to another account
                   value:
@@ -983,7 +1111,7 @@ paths:
                   summary: Display name set to an email address
                   value:
                     code: cocart_cannot_set_email_as_display_name
-                    message: Display name cannot be set to an email address for security reasons.
+                    message: Display name cannot be changed to email address due to privacy concern.
                     data:
                       status: 403
       security:
@@ -1069,6 +1197,13 @@ paths:
                     message: Please provide a valid email address.
                     data:
                       status: 400
+                customer_error:
+                  summary: The customer could not be retrieved
+                  value:
+                    code: cocart_customer_error
+                    message: Unable to retrieve customer.
+                    data:
+                      status: 400
         '403':
           description: Forbidden - you need to be logged in to update the address.
           content:
@@ -1118,6 +1253,17 @@ paths:
                 empty:
                   summary: No downloads available
                   value: No downloads available yet on this account.
+        '400':
+          description: Bad request - the customer could not be retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_customer_error
+                message: Unable to retrieve customer.
+                data:
+                  status: 400
         '403':
           description: Forbidden - you need to be logged in to view downloads.
           content:
@@ -1143,20 +1289,22 @@ paths:
       parameters:
         - name: page
           in: query
-          description: The pagination of orders to return.
+          description: The pagination of orders to return. Clamped server-side to a maximum of 100.
           required: false
           schema:
             type: integer
             default: 1
+            minimum: 1
+            maximum: 100
         - name: per_page
           in: query
-          description: Limit amount of orders to return per page. Capped at 50 per request.
+          description: Limit amount of orders to return per page. Clamped server-side to a maximum of 50 per request, regardless of the value requested.
           required: false
           schema:
             type: integer
             default: 10
             minimum: 1
-            maximum: 100
+            maximum: 50
         - name: order
           in: query
           description: Order sort attribute ascending or descending.
@@ -1187,6 +1335,17 @@ paths:
                         label: View
                 pagination:
                   next: https://example-store.com/wp-json/cocart/v2/my-account/orders/?page=2&per_page=10
+        '400':
+          description: Bad request - the customer could not be retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_customer_error
+                message: Unable to retrieve customer.
+                data:
+                  status: 400
         '403':
           description: Forbidden - you need to be logged in to view orders.
           content:
@@ -2391,6 +2550,19 @@ paths:
 
         A blocklist of reserved usernames (admin, root, support, etc.) cannot be
         registered (filterable via the `cocart_reserved_usernames` filter).
+
+        Passwords provided by the customer must be at least 8 characters
+        (filterable via `cocart_minimum_password_length`), must not match the
+        username or email address, must not be a common weak password
+        (filterable via `cocart_common_weak_passwords`), and must mix at
+        least three of: lowercase, uppercase, digit, symbol. This check is
+        skipped for a generated password.
+
+        The username/password fields are named `requested_username` /
+        `requested_password` rather than `username`/`password` deliberately:
+        CoCart Starter's authentication layer treats any request containing
+        non-empty `username`/`password` fields as a Basic Auth attempt, which
+        would collide with (and reject) this endpoint's own registration fields.
       requestBody:
         required: true
         content:
@@ -2402,18 +2574,18 @@ paths:
                   description: Customers email address. Required and must not already be registered.
                   type: string
                   format: email
-                username:
+                requested_username:
                   description: Customers requested username. Optional when WooCommerce is set to generate usernames from the email address.
                   type: string
-                password:
+                requested_password:
                   description: Customers requested password. Optional when WooCommerce is set to generate passwords automatically.
                   type: string
               required:
                 - email
             example:
               email: jane.doe@example.com
-              username: janedoe
-              password: hunter2-Str0ng!
+              requested_username: janedoe
+              requested_password: hunter2-Str0ng!
       responses:
         '200':
           description: Customer registered successfully.
@@ -2435,16 +2607,33 @@ paths:
                     username: janedoe
                     message: Your account was created successfully and a password has been sent to your email address.
         '400':
-          description: Bad request - reserved username or account creation failed.
+          description: Bad request - reserved username, weak password, or account creation failed.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_registration_error_reserved_username
-                message: This username cannot be registered. Please choose another.
-                data:
-                  status: 400
+              examples:
+                reserved_username:
+                  summary: Username is reserved
+                  value:
+                    code: cocart_registration_error_reserved_username
+                    message: This username cannot be registered. Please choose another.
+                    data:
+                      status: 400
+                weak_password:
+                  summary: Password is too weak
+                  value:
+                    code: cocart_registration_error_weak_password
+                    message: This password is too weak. Please choose a stronger password.
+                    data:
+                      status: 400
+                creation_failed:
+                  summary: Account creation failed (message varies)
+                  value:
+                    code: cocart_registration_error_failed_creation
+                    message: Registration is currently not allowed.
+                    data:
+                      status: 400
         '404':
           description: Not found - invalid email, invalid username or missing password.
           content:
@@ -2457,6 +2646,13 @@ paths:
                   value:
                     code: cocart_registration_invalid_email
                     message: A valid email address is required!
+                    data:
+                      status: 404
+                invalid_username:
+                  summary: Invalid username
+                  value:
+                    code: cocart_registration_error_invalid_username
+                    message: Please provide a valid username.
                     data:
                       status: 404
                 missing_password:

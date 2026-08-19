@@ -98,6 +98,17 @@ paths:
                 extensions:
                   email_verification:
                     verified: false
+        '400':
+          description: Bad request - the customer could not be retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_customer_error
+                message: Unable to retrieve customer.
+                data:
+                  status: 400
         '403':
           description: Forbidden - you need to be logged in to view the account.
           content:
@@ -225,7 +236,7 @@ paths:
                   summary: New password confirmation missing
                   value:
                     code: cocart_account_reenter_password
-                    message: Please re-enter your password.
+                    message: Please re-enter your password a second time.
                     data:
                       status: 400
                 passwords_mismatch:
@@ -249,6 +260,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
+                not_logged_in:
+                  summary: Not logged in
+                  value:
+                    code: cocart_access_my_account_denied
+                    message: You need to be logged in to view account!
+                    data:
+                      status: 403
                 email_registered:
                   summary: Email already registered to another account
                   value:
@@ -260,7 +278,7 @@ paths:
                   summary: Display name set to an email address
                   value:
                     code: cocart_cannot_set_email_as_display_name
-                    message: Display name cannot be set to an email address for security reasons.
+                    message: Display name cannot be changed to email address due to privacy concern.
                     data:
                       status: 403
   /my-account/address:
@@ -343,6 +361,13 @@ paths:
                     message: Please provide a valid email address.
                     data:
                       status: 400
+                customer_error:
+                  summary: The customer could not be retrieved
+                  value:
+                    code: cocart_customer_error
+                    message: Unable to retrieve customer.
+                    data:
+                      status: 400
         '403':
           description: Forbidden - you need to be logged in to update the address.
           content:
@@ -389,6 +414,17 @@ paths:
                 empty:
                   summary: No downloads available
                   value: No downloads available yet on this account.
+        '400':
+          description: Bad request - the customer could not be retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_customer_error
+                message: Unable to retrieve customer.
+                data:
+                  status: 400
         '403':
           description: Forbidden - you need to be logged in to view downloads.
           content:
@@ -457,6 +493,17 @@ paths:
                       label: View
                 pagination:
                   next: https://example-store.com/wp-json/cocart/v2/my-account/orders/?page=2&per_page=10
+        '400':
+          description: Bad request - the customer could not be retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_customer_error
+                message: Unable to retrieve customer.
+                data:
+                  status: 400
         '403':
           description: Forbidden - you need to be logged in to view orders.
           content:

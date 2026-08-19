@@ -341,6 +341,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
+                coupons_not_enabled:
+                  summary: Coupons are not enabled for this store
+                  value:
+                    code: cocart_coupons_not_enabled
+                    message: Coupons are not enabled for this store!
+                    data:
+                      status: 404
+                code_required:
+                  summary: No coupon code provided
+                  value:
+                    code: cocart_coupon_code_required
+                    message: No coupon code provided!
+                    data:
+                      status: 404
                 not_exist:
                   summary: Coupon does not exist
                   value:
@@ -398,16 +412,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/CartV2'
         '404':
-          description: Not found - coupons are not enabled or the coupon is not applied to the cart.
+          description: Not found - coupons are not enabled, no code provided, or the coupon is not applied to the cart.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_coupons_not_enabled
-                message: Coupons are not enabled for this store!
-                data:
-                  status: 404
+              examples:
+                coupons_not_enabled:
+                  summary: Coupons are not enabled for this store
+                  value:
+                    code: cocart_coupons_not_enabled
+                    message: Coupons are not enabled for this store!
+                    data:
+                      status: 404
+                code_required:
+                  summary: No coupon code provided
+                  value:
+                    code: cocart_coupon_required
+                    message: No coupon code provided!
+                    data:
+                      status: 404
+                not_applied:
+                  summary: Coupon is not applied to the cart
+                  value:
+                    code: cocart_cart_coupon_invalid_code
+                    message: Coupon does not exist in the cart.
+                    data:
+                      status: 404
   /cart/add-fee:
     post:
       tags:
@@ -486,6 +517,13 @@ paths:
                     message: Name of fee is missing!
                     data:
                       status: 404
+                missing_amount:
+                  summary: Fee amount missing
+                  value:
+                    code: cocart_fee_missing_amount
+                    message: Fee amount is missing!
+                    data:
+                      status: 404
                 cannot_add:
                   summary: Cart is empty
                   value:
@@ -528,12 +566,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CartV2'
-        '404':
-          description: Not found - no fees have been added to the cart.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
   /cart/items:
     delete:
       tags:
@@ -582,12 +614,6 @@ paths:
               $ref: '#/components/headers/ETagHeader'
             CoCart-Cache:
               $ref: '#/components/headers/CoCartCacheHeader'
-        '404':
-          description: Not found - the cart has no items to remove.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
   /cart/set-shipping-method:
     post:
       tags:
@@ -647,11 +673,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/CartV2'
         '404':
-          description: Not found - shipping not available or invalid rate ID.
+          description: Not found - shipping is disabled, no rate ID provided, or shipping hasn't been calculated yet for the cart.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                shipping_disabled:
+                  summary: Shipping is disabled for this store
+                  value:
+                    code: cocart_shipping_disabled
+                    message: Shipping is disabled.
+                    data:
+                      status: 404
+                missing_rate_id:
+                  summary: No rate ID provided
+                  value:
+                    code: cocart_missing_rate_id
+                    message: Invalid Rate ID.
+                    data:
+                      status: 404
+                not_calculated:
+                  summary: Applying to all packages, but shipping hasn't been calculated yet
+                  value:
+                    code: cocart_shipping_not_calculated
+                    message: Customer has not calculated shipping.
+                    data:
+                      status: 404
 components:
   headers:
     ETagHeader:

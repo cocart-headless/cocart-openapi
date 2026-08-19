@@ -47,6 +47,13 @@ paths:
         A blocklist of reserved usernames (admin, root, support, etc.) cannot be
         registered (filterable via the `cocart_reserved_usernames` filter).
 
+        Passwords provided by the customer must be at least 8 characters
+        (filterable via `cocart_minimum_password_length`), must not match the
+        username or email address, must not be a common weak password
+        (filterable via `cocart_common_weak_passwords`), and must mix at
+        least three of: lowercase, uppercase, digit, symbol. This check is
+        skipped for a generated password.
+
         The username/password fields are named `requested_username` /
         `requested_password` rather than `username`/`password` deliberately:
         CoCart Starter's authentication layer treats any request containing
@@ -96,16 +103,33 @@ paths:
                     username: janedoe
                     message: Your account was created successfully and a password has been sent to your email address.
         '400':
-          description: Bad request - reserved username or account creation failed.
+          description: Bad request - reserved username, weak password, or account creation failed.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_registration_error_reserved_username
-                message: This username cannot be registered. Please choose another.
-                data:
-                  status: 400
+              examples:
+                reserved_username:
+                  summary: Username is reserved
+                  value:
+                    code: cocart_registration_error_reserved_username
+                    message: This username cannot be registered. Please choose another.
+                    data:
+                      status: 400
+                weak_password:
+                  summary: Password is too weak
+                  value:
+                    code: cocart_registration_error_weak_password
+                    message: This password is too weak. Please choose a stronger password.
+                    data:
+                      status: 400
+                creation_failed:
+                  summary: Account creation failed (message varies)
+                  value:
+                    code: cocart_registration_error_failed_creation
+                    message: Registration is currently not allowed.
+                    data:
+                      status: 400
         '404':
           description: Not found - invalid email, invalid username or missing password.
           content:
@@ -118,6 +142,13 @@ paths:
                   value:
                     code: cocart_registration_invalid_email
                     message: A valid email address is required!
+                    data:
+                      status: 404
+                invalid_username:
+                  summary: Invalid username
+                  value:
+                    code: cocart_registration_error_invalid_username
+                    message: Please provide a valid username.
                     data:
                       status: 404
                 missing_password:
