@@ -809,6 +809,606 @@ paths:
                 message: Subscription #89 does not exist.
                 data:
                   status: 404
+  /my-account/subscriptions/{id}/suspend:
+    post:
+      tags:
+      - my-account
+      summary: Suspend a subscription
+      description: |
+        Puts the authenticated customer's subscription on hold, via the
+        `cocart_my_account_suspend_subscription` filter. Requires login - unlike
+        the read-only single-subscription view, write actions never allow guest
+        access by billing email. Whether a subscription can be suspended (e.g.
+        suspension limits) is decided entirely by the owning subscription
+        plugin - the exact error code, message and status for a rejected
+        suspension vary accordingly (WooCommerce Subscriptions always uses the
+        codes shown below; Milo Subscriptions surfaces its own manager error
+        code, or a generic 400 when it declines without a specific reason).
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier for the subscription.
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Subscription suspended successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionActionResult'
+              example:
+                subscription_id: 89
+                subscription_status: On hold
+        '400':
+          description: Bad request - the subscription plugin declined the action without a more specific reason (e.g. Milo Subscriptions).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_subscription_action_failed
+                message: This action could not be completed for this subscription.
+                data:
+                  status: 400
+        '403':
+          description: Forbidden - not logged in, or the subscription cannot be suspended.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                not_logged_in:
+                  summary: Not logged in
+                  value:
+                    code: cocart_access_my_account_denied
+                    message: You need to be logged in to manage your subscription!
+                    data:
+                      status: 403
+                cannot_suspend:
+                  summary: Subscription cannot be suspended (WooCommerce Subscriptions)
+                  value:
+                    code: cocart_subscription_cannot_suspend
+                    message: This subscription cannot be suspended.
+                    data:
+                      status: 403
+        '404':
+          description: Not found - the subscription does not exist or does not belong to the requester.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_subscription_does_not_exist
+                message: Subscription #89 does not exist.
+                data:
+                  status: 404
+  /my-account/subscriptions/{id}/cancel:
+    post:
+      tags:
+      - my-account
+      summary: Cancel a subscription
+      description: |
+        Cancels the authenticated customer's subscription, via the
+        `cocart_my_account_cancel_subscription` filter. Requires login - unlike
+        the read-only single-subscription view, write actions never allow guest
+        access by billing email. The exact error code, message and status for a
+        rejected cancellation depend on the owning subscription plugin
+        (WooCommerce Subscriptions always uses the codes shown below; Milo
+        Subscriptions surfaces its own manager error code, or a generic 400
+        when it declines without a specific reason).
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier for the subscription.
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Subscription cancelled successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionActionResult'
+              example:
+                subscription_id: 89
+                subscription_status: Cancelled
+        '400':
+          description: Bad request - the subscription plugin declined the action without a more specific reason (e.g. Milo Subscriptions).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_subscription_action_failed
+                message: This action could not be completed for this subscription.
+                data:
+                  status: 400
+        '403':
+          description: Forbidden - not logged in, or the subscription cannot be cancelled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                not_logged_in:
+                  summary: Not logged in
+                  value:
+                    code: cocart_access_my_account_denied
+                    message: You need to be logged in to manage your subscription!
+                    data:
+                      status: 403
+                cannot_cancel:
+                  summary: Subscription cannot be cancelled (WooCommerce Subscriptions)
+                  value:
+                    code: cocart_subscription_cannot_cancel
+                    message: This subscription cannot be cancelled.
+                    data:
+                      status: 403
+        '404':
+          description: Not found - the subscription does not exist or does not belong to the requester.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_subscription_does_not_exist
+                message: Subscription #89 does not exist.
+                data:
+                  status: 404
+  /my-account/subscriptions/{id}/reactivate:
+    post:
+      tags:
+      - my-account
+      summary: Reactivate a subscription
+      description: |
+        Reactivates the authenticated customer's subscription, via the
+        `cocart_my_account_reactivate_subscription` filter. Requires login -
+        unlike the read-only single-subscription view, write actions never
+        allow guest access by billing email. A subscription that needs a
+        renewal payment first is rejected rather than reactivated, matching
+        WooCommerce Subscriptions' own My Account behavior; other subscription
+        plugins may reject for different reasons (see the 400 and 403
+        examples below).
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier for the subscription.
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Subscription reactivated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionActionResult'
+              example:
+                subscription_id: 89
+                subscription_status: Active
+        '400':
+          description: Bad request - the subscription cannot be reactivated as-is.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                needs_payment:
+                  summary: Needs a renewal payment first (WooCommerce Subscriptions)
+                  value:
+                    code: cocart_subscription_needs_payment
+                    message: This subscription needs a renewal payment before it can be reactivated.
+                    data:
+                      status: 400
+                action_failed:
+                  summary: Declined without a more specific reason (e.g. Milo Subscriptions)
+                  value:
+                    code: cocart_subscription_action_failed
+                    message: This action could not be completed for this subscription.
+                    data:
+                      status: 400
+        '403':
+          description: Forbidden - not logged in, or the subscription cannot be reactivated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                not_logged_in:
+                  summary: Not logged in
+                  value:
+                    code: cocart_access_my_account_denied
+                    message: You need to be logged in to manage your subscription!
+                    data:
+                      status: 403
+                cannot_reactivate:
+                  summary: Subscription cannot be reactivated (WooCommerce Subscriptions)
+                  value:
+                    code: cocart_subscription_cannot_reactivate
+                    message: This subscription cannot be reactivated.
+                    data:
+                      status: 403
+        '404':
+          description: Not found - the subscription does not exist or does not belong to the requester.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_subscription_does_not_exist
+                message: Subscription #89 does not exist.
+                data:
+                  status: 404
+  /my-account/subscriptions/{id}/auto-renew:
+    post:
+      tags:
+      - my-account
+      summary: Toggle subscription auto-renewal
+      description: |
+        Enables or disables auto-renewal (manual renewal) for the authenticated
+        customer's subscription, via the
+        `cocart_my_account_toggle_subscription_auto_renewal` filter. Requires
+        login. Not every subscription plugin exposes this to customers (e.g.
+        Milo Subscriptions has no customer-facing auto-renewal toggle), in
+        which case the request 404s rather than pretending to succeed.
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier for the subscription.
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  description: Whether auto-renewal should be enabled.
+                  type: boolean
+              required:
+              - enabled
+            example:
+              enabled: false
+      responses:
+        '200':
+          description: Auto-renewal setting updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionAutoRenewResult'
+              example:
+                subscription_id: 89
+                is_manual: true
+        '403':
+          description: Forbidden - not logged in, or auto-renewal cannot be changed for this subscription.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                not_logged_in:
+                  summary: Not logged in
+                  value:
+                    code: cocart_access_my_account_denied
+                    message: You need to be logged in to manage your subscription!
+                    data:
+                      status: 403
+                cannot_toggle:
+                  summary: Auto-renewal cannot be changed
+                  value:
+                    code: cocart_subscription_cannot_toggle_auto_renewal
+                    message: Auto-renewal cannot be changed for this subscription.
+                    data:
+                      status: 403
+        '404':
+          description: Not found - the subscription does not exist, does not belong to the requester, or the active subscription plugin does not support this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_subscription_does_not_exist
+                message: Subscription #89 does not exist.
+                data:
+                  status: 404
+  /my-account/subscriptions/{id}/payment-method:
+    post:
+      tags:
+      - my-account
+      summary: Update subscription payment method
+      description: |
+        Changes the payment method for the authenticated customer's
+        subscription, via the
+        `cocart_my_account_update_subscription_payment_method` filter.
+        Requires login. What actually happens differs by subscription plugin -
+        WooCommerce Subscriptions accepts any valid gateway ID and runs a real
+        $0 validation charge against the new method before accepting it
+        (mirroring its own change-payment-method flow), while Milo
+        Subscriptions requires `token_id` (it identifies the gateway from the
+        saved token itself, so `payment_method` is otherwise unused) and does
+        a pure saved-token swap with no charge - it may also veto a token that
+        was never validated for off-session use.
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier for the subscription.
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payment_method:
+                  description: Payment method (gateway) ID.
+                  type: string
+                token_id:
+                  description: Saved payment token ID to use. Required for Milo Subscriptions; optional for WooCommerce Subscriptions.
+                  type: integer
+              required:
+              - payment_method
+            example:
+              payment_method: stripe
+              token_id: 42
+      responses:
+        '200':
+          description: Payment method updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionPaymentMethodResult'
+              example:
+                subscription_id: 89
+                payment_method: Visa ending in 1234
+                is_manual: false
+        '400':
+          description: Bad request - the payment method or saved token is invalid, disabled, unavailable, or unsupported for this subscription.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_payment_method:
+                  summary: Payment method does not exist (WooCommerce Subscriptions)
+                  value:
+                    code: cocart_invalid_payment_method
+                    message: Invalid payment method.
+                    data:
+                      status: 400
+                payment_method_disabled:
+                  summary: Payment method is disabled (WooCommerce Subscriptions)
+                  value:
+                    code: cocart_payment_method_disabled
+                    message: This payment method is currently disabled.
+                    data:
+                      status: 400
+                payment_method_no_subscription_support:
+                  summary: Payment method does not support subscriptions (WooCommerce Subscriptions)
+                  value:
+                    code: cocart_payment_method_no_subscription_support
+                    message: The payment method "Stripe" does not support subscriptions. Please choose a different payment method.
+                    data:
+                      status: 400
+                payment_method_not_available:
+                  summary: Payment method not available (WooCommerce Subscriptions)
+                  value:
+                    code: cocart_payment_method_not_available
+                    message: This payment method is not available for your order.
+                    data:
+                      status: 400
+                payment_method_not_supported:
+                  summary: Subscription plugin does not support changing payment method (WooCommerce Subscriptions)
+                  value:
+                    code: cocart_subscription_payment_method_not_supported
+                    message: Changing payment method is not supported for this subscription.
+                    data:
+                      status: 400
+                payment_token_required:
+                  summary: No saved token provided (Milo Subscriptions)
+                  value:
+                    code: cocart_subscription_payment_token_required
+                    message: A saved payment token is required to change this subscription's payment method.
+                    data:
+                      status: 400
+                invalid_payment_token:
+                  summary: Saved token does not exist or belongs to another customer (Milo Subscriptions)
+                  value:
+                    code: cocart_subscription_invalid_payment_token
+                    message: Invalid payment method.
+                    data:
+                      status: 400
+                payment_token_needs_confirmation:
+                  summary: Saved token needs re-confirmation before recurring use (Milo Subscriptions)
+                  value:
+                    code: cocart_subscription_payment_token_needs_confirmation
+                    message: This payment method needs to be re-confirmed before it can be used for recurring payments.
+                    data:
+                      status: 400
+        '402':
+          description: Payment required - the validation charge on the new payment method failed (WooCommerce Subscriptions only; Milo Subscriptions never charges to change payment method).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_payment_failed
+                message: Payment method could not be updated.
+                data:
+                  status: 402
+        '403':
+          description: Forbidden - you need to be logged in to manage your subscription.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_access_my_account_denied
+                message: You need to be logged in to manage your subscription!
+                data:
+                  status: 403
+        '404':
+          description: Not found - the subscription does not exist or does not belong to the requester.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_subscription_does_not_exist
+                message: Subscription #89 does not exist.
+                data:
+                  status: 404
+  /my-account/subscriptions/{id}/resubscribe:
+    post:
+      tags:
+      - my-account
+      summary: Seed cart to resubscribe
+      description: |
+        Resubscribing isn't a single atomic action in either WooCommerce
+        Subscriptions or Milo Subscriptions - both re-add the old
+        subscription's items to the cart and send the customer through
+        checkout, where the plugin's own order-creation hooks link the new
+        order back to the old subscription. This endpoint only seeds the
+        active cart the same way, via the
+        `cocart_my_account_seed_resubscribe_cart` filter; the client then
+        completes the purchase through CoCart's existing checkout endpoints.
+        No payment is processed here. Seeding empties whatever the customer
+        already had in their cart, so a non-empty cart is snapshotted into the
+        session first - `DELETE` on this same route restores that snapshot and
+        discards the in-progress resubscribe attempt. Eligibility (e.g. only
+        cancelled/expired subscriptions) and the exact error message are
+        decided by the owning subscription plugin; the codes below are shared
+        by both providers, but message wording can differ.
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier for the subscription.
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Cart seeded with the subscription's items successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionResubscribeResult'
+              example:
+                subscription_id: 89
+                cart_items_added: 1
+                cart_item_count: 1
+                cart_total: $29.99
+                saved_cart_item_count: 2
+        '400':
+          description: Bad request - none of the subscription's items could be added to the cart (e.g. the products are no longer available).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_subscription_resubscribe_failed
+                message: None of this subscription's items could be added to the cart.
+                data:
+                  status: 400
+        '403':
+          description: Forbidden - not logged in, or you cannot resubscribe to this subscription.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                not_logged_in:
+                  summary: Not logged in
+                  value:
+                    code: cocart_access_my_account_denied
+                    message: You need to be logged in to manage your subscription!
+                    data:
+                      status: 403
+                cannot_resubscribe:
+                  summary: Cannot resubscribe to this subscription
+                  value:
+                    code: cocart_subscription_cannot_resubscribe
+                    message: You cannot resubscribe to this subscription.
+                    data:
+                      status: 403
+        '404':
+          description: Not found - the subscription does not exist or does not belong to the requester.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_subscription_does_not_exist
+                message: Subscription #89 does not exist.
+                data:
+                  status: 404
+    delete:
+      tags:
+      - my-account
+      summary: Restore cart before resubscribing
+      description: |
+        Restores the cart snapshot taken before a `POST` to this same route,
+        discarding whatever resubscribe items are currently in the cart. Use
+        this to abandon an in-progress resubscribe attempt and give the
+        customer back what they had in their cart beforehand.
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier for the subscription.
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Saved cart restored successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionResubscribeRestoreResult'
+              example:
+                restored: true
+                cart_item_count: 2
+                restored_item_count: 2
+        '403':
+          description: Forbidden - you need to be logged in to manage your subscription.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_access_my_account_denied
+                message: You need to be logged in to manage your subscription!
+                data:
+                  status: 403
+        '404':
+          description: Not found - the subscription does not exist or does not belong to the requester, or there is no saved cart to restore.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                subscription_does_not_exist:
+                  summary: Subscription does not exist
+                  value:
+                    code: cocart_subscription_does_not_exist
+                    message: Subscription #89 does not exist.
+                    data:
+                      status: 404
+                no_saved_cart:
+                  summary: No saved cart to restore
+                  value:
+                    code: cocart_subscription_no_saved_cart
+                    message: There is no saved cart to restore.
+                    data:
+                      status: 404
   /my-account/verify-email:
     get:
       tags:
@@ -1554,6 +2154,71 @@ components:
         value:
           type: string
           description: Field value. Empty when not applicable to this subscription.
+    SubscriptionActionResult:
+      type: object
+      description: Result of a subscription status action (suspend, cancel, reactivate).
+      properties:
+        subscription_id:
+          type: integer
+          description: Unique identifier for the subscription.
+        subscription_status:
+          type: string
+          description: Subscription status after the action.
+    SubscriptionAutoRenewResult:
+      type: object
+      description: Result of toggling subscription auto-renewal.
+      properties:
+        subscription_id:
+          type: integer
+          description: Unique identifier for the subscription.
+        is_manual:
+          type: boolean
+          description: Whether the subscription now requires manual renewal.
+    SubscriptionPaymentMethodResult:
+      type: object
+      description: Result of updating a subscription's payment method.
+      properties:
+        subscription_id:
+          type: integer
+          description: Unique identifier for the subscription.
+        payment_method:
+          type: string
+          description: Payment method display name after the change.
+        is_manual:
+          type: boolean
+          description: Whether the subscription requires manual renewal.
+    SubscriptionResubscribeResult:
+      type: object
+      description: Result of seeding the cart to resubscribe.
+      properties:
+        subscription_id:
+          type: integer
+          description: Unique identifier for the subscription.
+        cart_items_added:
+          type: integer
+          description: Number of line items added to the cart.
+        cart_item_count:
+          type: integer
+          description: Total items now in the cart.
+        cart_total:
+          type: string
+          description: Formatted cart total.
+        saved_cart_item_count:
+          type: integer
+          description: Number of items from the customer's previous cart that were snapshotted before it was replaced (0 if the cart was already empty).
+    SubscriptionResubscribeRestoreResult:
+      type: object
+      description: Result of restoring the cart snapshot taken before a resubscribe attempt.
+      properties:
+        restored:
+          type: boolean
+          description: Whether a saved cart snapshot was restored.
+        cart_item_count:
+          type: integer
+          description: Total items now in the cart.
+        restored_item_count:
+          type: integer
+          description: Number of items restored from the saved cart snapshot.
     ErrorResponse:
       type: object
       description: Standard error response structure.
