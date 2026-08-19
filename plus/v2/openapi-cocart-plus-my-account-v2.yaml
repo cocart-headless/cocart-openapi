@@ -4,11 +4,13 @@ info:
   version: 2.0.0
   description: |
     CoCart Plus extends the CoCart REST API v2 with customer account endpoints
-    for the account dashboard, editing account details, downloads and orders.
+    for the account dashboard, editing account details, downloads, orders and
+    subscriptions.
 
     All endpoints require an authenticated customer, except viewing a single
-    order (which also allows guest access when the order's billing email is
-    provided) and confirming a pending email address change, which is public.
+    order or subscription (which also allow guest access when the billing
+    email is provided) and confirming a pending email address change, which
+    is public.
 
     Requires CoCart Starter v5.0+ to be installed and active.
   termsOfService: https://cocartapi.com/terms-of-conditions-polar/
@@ -34,7 +36,7 @@ servers:
       description: Your store domain
 tags:
 - name: my-account
-  description: Operations for the customer account dashboard, downloads and orders
+  description: Operations for the customer account dashboard, downloads, orders and subscriptions
 paths:
   /my-account:
     get:
@@ -640,6 +642,171 @@ paths:
               example:
                 code: cocart_order_does_not_exist
                 message: Order #1234 does not exist.
+                data:
+                  status: 404
+  /my-account/subscriptions:
+    get:
+      tags:
+      - my-account
+      summary: Get customer subscriptions
+      description: |
+        Returns a paginated list of the authenticated customer's subscriptions.
+        Subscriptions are provided by whichever subscription-plugin extension is
+        active (WooCommerce Subscriptions, Milo Subscriptions, etc) via the
+        `cocart_my_account_get_subscriptions` filter, so results are the same
+        regardless of which subscription plugin the store runs. Requires a
+        subscription-plugin extension to be active; no subscriptions are
+        returned otherwise.
+      parameters:
+      - name: page
+        in: query
+        description: The pagination of subscriptions to return. Clamped server-side to a maximum of 100.
+        required: false
+        schema:
+          type: integer
+          default: 1
+          minimum: 1
+          maximum: 100
+      - name: per_page
+        in: query
+        description: Limit amount of subscriptions to return per page. Clamped server-side to a maximum of 50 per request, regardless of the value requested.
+        required: false
+        schema:
+          type: integer
+          default: 10
+          minimum: 1
+          maximum: 50
+      - name: order
+        in: query
+        description: Order sort attribute ascending or descending.
+        required: false
+        schema:
+          type: string
+          default: DESC
+          enum:
+          - ASC
+          - DESC
+      responses:
+        '200':
+          description: Subscriptions retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerSubscriptions'
+              example:
+                subscriptions:
+                - subscription_id: 89
+                  subscription_number: '#89'
+                  subscription_status: Active
+                  next_payment: September 19, 2026
+                  subscription_total: $29.99 / month
+                  is_manual: false
+                  view: https://example-store.com/wp-json/cocart/v2/my-account/subscriptions/89
+                pagination:
+                  next: https://example-store.com/wp-json/cocart/v2/my-account/subscriptions/?page=2&per_page=10
+        '403':
+          description: Forbidden - you need to be logged in to view subscriptions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_access_my_account_denied
+                message: You need to be logged in to view account!
+                data:
+                  status: 403
+        '404':
+          description: Not found - no subscriptions found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_account_no_subscriptions
+                message: No subscriptions found.
+                data:
+                  status: 404
+  /my-account/subscriptions/{id}:
+    get:
+      tags:
+      - my-account
+      summary: Get single subscription
+      description: |
+        Returns the details of a single subscription belonging to the
+        authenticated customer. Guests may also view a subscription by
+        providing the `email` query parameter matching the subscription's
+        billing email address. To avoid leaking which subscription IDs exist,
+        a non-existent subscription and one the requester doesn't own both
+        return the same 404 response.
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier for the subscription.
+        required: true
+        schema:
+          type: integer
+      - name: email
+        in: query
+        description: The subscription's billing email address. Allows guest access to the subscription when it matches.
+        required: false
+        schema:
+          type: string
+          format: email
+      responses:
+        '200':
+          description: Subscription retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerSubscription'
+              example:
+                subscription_id: 89
+                subscription_number: '#89'
+                parent_order: 1234
+                order: https://example-store.com/wp-json/cocart/v2/my-account/orders/1234
+                subscription_status: Active
+                subscription_total: $29.99 / month
+                is_manual: false
+                start_date:
+                  title: Start date
+                  value: August 19, 2026
+                next_payment:
+                  title: Next payment date
+                  value: September 19, 2026
+                end_date:
+                  title: End date
+                  value: ''
+                trial_end:
+                  title: Trial end date
+                  value: ''
+                payment:
+                  title: Payment
+                  value: Visa ending in 1234
+                billing_address: John Doe, 123 Main Street, Suite 100, Beverly Hills, CA 90210, United States (US)
+                shipping_address: John Doe, 123 Main Street, Suite 100, Beverly Hills, CA 90210, United States (US)
+                notes:
+                - date: August 19th 2026, 02:45pm
+                  note: Payment received. Next payment scheduled for September 19, 2026.
+        '403':
+          description: Forbidden - not logged in and no matching billing email provided.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_access_my_account_denied
+                message: You need to be logged in to view account!
+                data:
+                  status: 403
+        '404':
+          description: Not found - the subscription does not exist or does not belong to the requester.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_subscription_does_not_exist
+                message: Subscription #89 does not exist.
                 data:
                   status: 404
   /my-account/verify-email:
@@ -1279,6 +1446,114 @@ components:
           type: string
           format: uri
           description: Link to the product endpoint. Empty when the product no longer exists.
+    CustomerSubscriptions:
+      type: object
+      description: Paginated list of customer subscriptions.
+      properties:
+        subscriptions:
+          type: array
+          description: List of customer subscriptions.
+          items:
+            type: object
+            properties:
+              subscription_id:
+                type: integer
+                description: Unique identifier for the subscription.
+              subscription_number:
+                type: string
+                description: Subscription number.
+              subscription_status:
+                type: string
+                description: Subscription status.
+              next_payment:
+                type: string
+                description: Next payment date. Empty when no future payment is scheduled.
+              subscription_total:
+                type: string
+                description: Subscription total, formatted without HTML.
+              is_manual:
+                type: boolean
+                description: Whether the subscription requires manual renewal.
+              view:
+                type: string
+                format: uri
+                description: Link to view the subscription.
+        pagination:
+          type: object
+          description: Pagination information. Links are only present when more pages are available.
+          properties:
+            previous:
+              type: string
+              format: uri
+              description: Link to previous page.
+            next:
+              type: string
+              format: uri
+              description: Link to next page.
+    CustomerSubscription:
+      type: object
+      description: A single customer subscription.
+      properties:
+        subscription_id:
+          type: integer
+          description: Unique identifier for the subscription.
+        subscription_number:
+          type: string
+          description: Subscription number.
+        parent_order:
+          type: integer
+          description: Parent order ID.
+        order:
+          type: string
+          format: uri
+          description: Link to the parent order.
+        subscription_status:
+          type: string
+          description: Subscription status.
+        subscription_total:
+          type: string
+          description: Subscription total, formatted without HTML.
+        is_manual:
+          type: boolean
+          description: Whether the subscription requires manual renewal.
+        start_date:
+          $ref: '#/components/schemas/SubscriptionTitledValue'
+        next_payment:
+          $ref: '#/components/schemas/SubscriptionTitledValue'
+        end_date:
+          $ref: '#/components/schemas/SubscriptionTitledValue'
+        trial_end:
+          $ref: '#/components/schemas/SubscriptionTitledValue'
+        payment:
+          $ref: '#/components/schemas/SubscriptionTitledValue'
+        billing_address:
+          type: string
+          description: Formatted billing address as a single line.
+        shipping_address:
+          type: string
+          description: Formatted shipping address as a single line.
+        notes:
+          type: array
+          description: Subscription notes shared with the customer.
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                description: Note date.
+              note:
+                type: string
+                description: Note content.
+    SubscriptionTitledValue:
+      type: object
+      description: A labelled subscription detail row, e.g. a date or the payment method.
+      properties:
+        title:
+          type: string
+          description: Field title.
+        value:
+          type: string
+          description: Field value. Empty when not applicable to this subscription.
     ErrorResponse:
       type: object
       description: Standard error response structure.
