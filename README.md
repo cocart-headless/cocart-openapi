@@ -69,6 +69,18 @@ Reflects CoCart Plus **v2.0.0** (In development).
 | [Others](plus/v2/openapi-cocart-plus-others-v2.yaml) | Customer registration, Order withdrawal | 2 paths |
 | [Checkout](plus/v2/openapi-cocart-plus-checkout-v2.yaml) | Checkout - process orders, process payments | 7 paths |
 
+### CoCart SEO Pack
+
+An add-on plugin that extends CoCart with SEO metadata and Schema.org structured data for products, sourced from your active SEO plugin (Yoast SEO, Rank Math, All in One SEO, SEOPress, The SEO Framework) or a built-in fallback provider.
+
+Reflects CoCart SEO Pack **v1.0.0-beta.2**.
+
+| File | Description | Endpoints |
+|------|-------------|-----------|
+| [Products](seo-pack/v2/openapi-cocart-seo-pack-v2.yaml) | Product SEO data by ID or slug | 2 paths |
+
+Covers: `GET /products/{id}/seo` and `GET /products/{slug}/seo`, returning SEO meta (title, description, keywords, OpenGraph, Twitter Card, canonical URL, robots) and Schema.org JSON-LD structured data.
+
 ### CoCart JWT Authentication
 
 A companion plugin that adds JWT (JSON Web Token) authentication to CoCart. Tokens are issued during login and managed via dedicated endpoints.
