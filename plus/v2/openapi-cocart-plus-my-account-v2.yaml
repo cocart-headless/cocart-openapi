@@ -13,6 +13,11 @@ info:
     is public.
 
     Requires CoCart Starter v5.0+ to be installed and active.
+
+    My account responses belong to one customer, so they are kept out of shared caches (CDNs, a host's nginx
+    microcache): `Cache-Control: no-cache, no-store, must-revalidate, max-age=0,
+    private`, `Pragma: no-cache`, `X-Accel-Expires: 0` (consumed by nginx) and
+    `Vary: Cart-Key, CoCart-API-Cart-Key, Authorization`.
   termsOfService: https://cocartapi.com/terms-of-conditions-polar/
   contact:
     email: support@cocartapi.com
