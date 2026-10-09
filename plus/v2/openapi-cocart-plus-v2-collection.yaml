@@ -14,7 +14,27 @@ info:
     `Country-Code`, `Region` and `Timezone` headers.
     When rate limiting is enabled, responses include `RateLimit-Limit`,
     `RateLimit-Remaining` and `RateLimit-Reset` headers (plus `RateLimit-Retry-After`
-    on 429 responses).
+    on 429 responses). They are listed in `Access-Control-Expose-Headers`, so a frontend on another origin can read them.
+
+    Cart, my account and order withdrawal responses belong to one cart, customer or order, so they are kept out of shared caches (CDNs, a host's nginx
+    microcache): `Cache-Control: no-cache, no-store, must-revalidate, max-age=0,
+    private`, `Pragma: no-cache`, `X-Accel-Expires: 0` (consumed by nginx) and
+    `Vary: Cart-Key, CoCart-API-Cart-Key, Authorization`.
+
+    **Choices sent on CoCart Starter routes**
+
+    Some extension data describes a choice the customer makes. The choice is sent to
+    CoCart Starter's cart routes, which aren't part of this spec:
+
+    - Subscription plans (`subscription_schemes`): send the option's `value` as
+      `convert_to_sub` to `POST /cart/add-item` (`"0"` for one-time; without it
+      the default option applies). To switch a cart item, send `namespace`
+      `update-item-schema`, the `item_key` and `convert_to_sub` to
+      `POST /cart/update`. Each option's `rest_url` is that request, ready-made.
+    - Gifting (WooCommerce Subscriptions gifting): send `recipient_email` to
+      `POST /cart/add-item`.
+    - WooCommerce Warranty: send the option's `key` (or its index) as
+      `item_data[warranty]` to `POST /cart/add-item`.
   termsOfService: https://cocartapi.com/terms-of-conditions-polar/
   contact:
     email: support@cocartapi.com
@@ -55,6 +75,8 @@ tags:
     description: Operations for registering customers
   - name: orders
     description: Operations for submitting order withdrawal requests
+  - name: batch
+    description: Several requests in one.
 paths:
   /cart/mini:
     get:
@@ -111,7 +133,7 @@ paths:
                     name: Premium Quality T-Shirt
                     price: '1800'
                     quantity: 2
-                    variation: []
+                    variation: {}
                     cart_item_data: {}
                     featured_image: https://example-store.com/wp-content/uploads/2024/03/tshirt.jpg
                 subtotal: '3600'
@@ -126,6 +148,17 @@ paths:
                 message: You do not have the minimum required version of CoCart installed to use this endpoint.
                 data:
                   status: 403
+        "404":
+          description: The requested cart key has no cart session (`cocart_invalid_cart`), for example because the cart expired. Send the request again without a cart key to start a new cart.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: cocart_invalid_cart
+                message: The cart requested is invalid.
+                data:
+                  status: 404
   /cart/coupons:
     get:
       tags:
@@ -167,7 +200,7 @@ paths:
                     discount: '360'
                     discount_tax: '0'
         '404':
-          description: Not found - coupons are not enabled or no coupons are applied.
+          description: Not found - coupons are not enabled or no coupons are applied. Also `cocart_invalid_cart` when the requested cart key has no cart session.
           content:
             application/json:
               schema:
@@ -185,6 +218,13 @@ paths:
                   value:
                     code: cocart_cart_no_coupons_applied
                     message: No coupons are applied to the cart!
+                    data:
+                      status: 404
+                cocart_invalid_cart:
+                  summary: Cart key with no cart session
+                  value:
+                    code: cocart_invalid_cart
+                    message: The cart requested is invalid.
                     data:
                       status: 404
     delete:
@@ -222,16 +262,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/CartV2'
         '404':
-          description: Not found - coupons are not enabled for this store.
+          description: Not found - coupons are not enabled for this store. Also `cocart_invalid_cart` when the requested cart key has no cart session.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_coupons_not_enabled
-                message: Coupons are not enabled for this store!
-                data:
-                  status: 404
+              examples:
+                cocart_coupons_not_enabled:
+                  value:
+                    code: cocart_coupons_not_enabled
+                    message: Coupons are not enabled for this store!
+                    data:
+                      status: 404
+                cocart_invalid_cart:
+                  summary: Cart key with no cart session
+                  value:
+                    code: cocart_invalid_cart
+                    message: The cart requested is invalid.
+                    data:
+                      status: 404
   /cart/coupons/validate:
     get:
       tags:
@@ -278,16 +327,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/CartV2'
         '404':
-          description: Not found - coupons are not enabled for this store.
+          description: Not found - coupons are not enabled for this store. Also `cocart_invalid_cart` when the requested cart key has no cart session.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_coupons_not_enabled
-                message: Coupons are not enabled for this store!
-                data:
-                  status: 404
+              examples:
+                cocart_coupons_not_enabled:
+                  value:
+                    code: cocart_coupons_not_enabled
+                    message: Coupons are not enabled for this store!
+                    data:
+                      status: 404
+                cocart_invalid_cart:
+                  summary: Cart key with no cart session
+                  value:
+                    code: cocart_invalid_cart
+                    message: The cart requested is invalid.
+                    data:
+                      status: 404
   /cart/apply-coupon:
     post:
       tags:
@@ -345,7 +403,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CartV2'
         '404':
-          description: Not found - coupons not enabled, no code provided, cart empty or coupon does not exist.
+          description: Not found - coupons not enabled, no code provided, cart empty or coupon does not exist. Also `cocart_invalid_cart` when the requested cart key has no cart session.
           content:
             application/json:
               schema:
@@ -379,6 +437,13 @@ paths:
                     message: Coupon cannot be applied to cart with no items.
                     data:
                       status: 404
+                cocart_invalid_cart:
+                  summary: Cart key with no cart session
+                  value:
+                    code: cocart_invalid_cart
+                    message: The cart requested is invalid.
+                    data:
+                      status: 404
   /cart/coupons/{code}:
     delete:
       tags:
@@ -389,11 +454,15 @@ paths:
       parameters:
         - name: code
           in: path
-          description: The coupon code to remove from the cart.
+          description: |
+            The coupon code to remove from the cart. Any code that can be applied
+            (spaces, `%`, `.`, accented letters...) except one containing `/`;
+            URL-encode it in the path (e.g. `summer%20sale`). To remove a code
+            containing `/`, use `DELETE /cart/coupons` (removes all coupons).
           required: true
           schema:
             type: string
-            pattern: ^[\w-]+$
+            pattern: ^[^/]+$
         - $ref: '#/components/parameters/CartKey'
         - $ref: '#/components/parameters/Fields'
         - $ref: '#/components/parameters/Thumb'
@@ -422,7 +491,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CartV2'
         '404':
-          description: Not found - coupons are not enabled, no code provided, or the coupon is not applied to the cart.
+          description: Not found - coupons are not enabled, no code provided, or the coupon is not applied to the cart. Also `cocart_invalid_cart` when the requested cart key has no cart session.
           content:
             application/json:
               schema:
@@ -447,6 +516,13 @@ paths:
                   value:
                     code: cocart_cart_coupon_invalid_code
                     message: Coupon does not exist in the cart.
+                    data:
+                      status: 404
+                cocart_invalid_cart:
+                  summary: Cart key with no cart session
+                  value:
+                    code: cocart_invalid_cart
+                    message: The cart requested is invalid.
                     data:
                       status: 404
   /cart/add-fee:
@@ -514,7 +590,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CartV2'
         '404':
-          description: Not found - fee name or amount missing, or cart is empty.
+          description: Not found - fee name or amount missing, or cart is empty. Also `cocart_invalid_cart` when the requested cart key has no cart session.
           content:
             application/json:
               schema:
@@ -539,6 +615,13 @@ paths:
                   value:
                     code: cocart_fee_cannot_add
                     message: Fee cannot be applied to cart with no items.
+                    data:
+                      status: 404
+                cocart_invalid_cart:
+                  summary: Cart key with no cart session
+                  value:
+                    code: cocart_invalid_cart
+                    message: The cart requested is invalid.
                     data:
                       status: 404
   /cart/remove-fees:
@@ -576,6 +659,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CartV2'
+        "404":
+          description: The requested cart key has no cart session (`cocart_invalid_cart`), for example because the cart expired. Send the request again without a cart key to start a new cart.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: cocart_invalid_cart
+                message: The cart requested is invalid.
+                data:
+                  status: 404
   /cart/items:
     delete:
       tags:
@@ -624,6 +718,17 @@ paths:
               $ref: '#/components/headers/ETagHeader'
             CoCart-Cache:
               $ref: '#/components/headers/CoCartCacheHeader'
+        "404":
+          description: The requested cart key has no cart session (`cocart_invalid_cart`), for example because the cart expired. Send the request again without a cart key to start a new cart.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: cocart_invalid_cart
+                message: The cart requested is invalid.
+                data:
+                  status: 404
   /cart/set-shipping-method:
     post:
       tags:
@@ -683,7 +788,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CartV2'
         '404':
-          description: Not found - shipping is disabled, no rate ID provided, or shipping hasn't been calculated yet for the cart.
+          description: Not found - shipping is disabled, no rate ID provided, or shipping hasn't been calculated yet for the cart. Also `cocart_invalid_cart` when the requested cart key has no cart session.
           content:
             application/json:
               schema:
@@ -708,6 +813,13 @@ paths:
                   value:
                     code: cocart_shipping_not_calculated
                     message: Customer has not calculated shipping.
+                    data:
+                      status: 404
+                cocart_invalid_cart:
+                  summary: Cart key with no cart session
+                  value:
+                    code: cocart_invalid_cart
+                    message: The cart requested is invalid.
                     data:
                       status: 404
   /products/{id}/shipping-rates:
@@ -2877,6 +2989,140 @@ paths:
                 message: We could not submit your withdrawal request. Please try again or contact us if the problem continues.
                 data:
                   status: 500
+  /batch:
+    servers:
+      - url: "{protocol}://{host}/wp-json/cocart"
+        description: The batch route is outside the versioned namespace.
+        variables:
+          protocol:
+            enum:
+              - http
+              - https
+            default: https
+          host:
+            default: example.com
+    post:
+      tags:
+        - batch
+      summary: Run several requests in one
+      description: |
+        Runs up to 25 CoCart requests (filterable up to 50 with `cocart_get_max_batch_size`) in one HTTP request.
+
+        When every request is a cart route (`/cocart/v2/cart…`), the response is **one cart**: the cart returned by the last request that succeeded, with the notices of every request merged into its `notices`. A request that failed is reported as an `error` notice instead, so the client reads one up-to-date cart. A `cart_key` sent with the batch applies to every request in it.
+
+        If every cart request fails, or the batch includes other routes, or a request fails schema validation with `validation: require-all-validate`, the response is WordPress's standard batch envelope: one entry per request with its own `status`, `headers` and `body` (207 when the statuses differ). `require-all-validate` checks request schemas only: errors raised while a request runs don't stop the others.
+      parameters:
+        - name: cart_key
+          in: query
+          required: false
+          description: Cart key applied to every cart request in the batch.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - requests
+              properties:
+                validation:
+                  type: string
+                  enum:
+                    - normal
+                    - require-all-validate
+                  default: normal
+                requests:
+                  type: array
+                  maxItems: 25
+                  items:
+                    type: object
+                    required:
+                      - path
+                    properties:
+                      method:
+                        type: string
+                        enum:
+                          - GET
+                          - POST
+                          - PUT
+                          - PATCH
+                          - DELETE
+                        default: POST
+                      path:
+                        type: string
+                        description: Route with a leading slash, e.g. `/cocart/v2/cart/add-item`. API v1 routes are refused.
+                      body:
+                        type: object
+                        additionalProperties: true
+                      headers:
+                        type: object
+                        additionalProperties:
+                          oneOf:
+                            - type: string
+                            - type: array
+                              items:
+                                type: string
+            example:
+              requests:
+                - method: POST
+                  path: /cocart/v2/cart/add-item
+                  body:
+                    id: "154"
+                    quantity: "1"
+                - method: POST
+                  path: /cocart/v2/cart/apply-coupon
+                  body:
+                    code: save10
+      responses:
+        "200":
+          description: "Every request was a cart route and at least one succeeded: the cart after the batch, with failed requests as `error` notices."
+          content:
+            application/json:
+              schema:
+                type: object
+                description: A cart response, as `GET /cocart/v2/cart` returns it.
+                additionalProperties: true
+              example:
+                cart_key: t_d8f5452294c521ed95f41f90b8768d
+                item_count: 1
+                items: []
+                notices:
+                  error:
+                    "1": Coupon "save1o" does not exist!
+        "207":
+          description: "The standard batch envelope: one result per request."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  failed:
+                    type: string
+                    description: "`validation` when a request failed schema validation under `require-all-validate`; nothing ran."
+                  responses:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        status:
+                          type: integer
+                        headers:
+                          type: object
+                          additionalProperties: true
+                        body: {}
+        "400":
+          description: "Invalid batch: more requests than allowed, or an API v1 path (`cocart_rest_invalid_path`)."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: cocart_rest_invalid_path
+                message: Invalid path provided.
+                data:
+                  status: 400
 components:
   headers:
     ETagHeader:
@@ -2917,17 +3163,17 @@ components:
         type: string
         example: America/Los_Angeles
     RateLimitLimit:
-      description: The maximum number of requests allowed in the current rate limit window. Only sent when rate limiting is enabled.
+      description: The maximum number of requests allowed in the current rate limit window. Only sent when rate limiting is enabled. Exposed to cross-origin requests.
       schema:
         type: integer
         example: 25
     RateLimitRemaining:
-      description: The number of requests remaining in the current rate limit window. Only sent when rate limiting is enabled.
+      description: The number of requests remaining in the current rate limit window. Only sent when rate limiting is enabled. Exposed to cross-origin requests.
       schema:
         type: integer
         example: 24
     RateLimitReset:
-      description: Unix timestamp when the current rate limit window resets. Only sent when rate limiting is enabled.
+      description: Unix timestamp when the current rate limit window resets. Only sent when rate limiting is enabled. Exposed to cross-origin requests.
       schema:
         type: integer
         example: 1767225600
@@ -3104,9 +3350,9 @@ components:
         customer:
           $ref: '#/components/schemas/Customer'
         items:
-          type: object
-          description: Cart items indexed by item key.
-          additionalProperties:
+          type: array
+          description: Items in the cart.
+          items:
             $ref: '#/components/schemas/CartItem'
         item_count:
           type: integer
@@ -3128,10 +3374,10 @@ components:
         shipping:
           $ref: '#/components/schemas/Shipping'
         fees:
-          type: array
-          description: Cart fees.
-          items:
-            $ref: '#/components/schemas/CartFee'
+          description: Fees added to the cart, keyed by fee ID. `{}` when there are none.
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/CartFee"
         taxes:
           type: array
           description: Cart taxes.
@@ -3158,9 +3404,81 @@ components:
           description: Cart meta data stored in session. Added by CoCart Plus.
           additionalProperties: true
         extensions:
+          $ref: '#/components/schemas/CartExtensions'
+    CartExtensions:
+      description: Data added to the cart by extensions (`cocart_cart_extensions`). `{}` when there is none. CoCart Plus adds the keys below, each only when its plugin is active and it applies; other plugins can add their own.
+      type: object
+      properties:
+        points_and_rewards:
+          description: 'Points and Rewards for the cart. Plugin: WooCommerce Points and Rewards.'
           type: object
-          description: Additional data added by third-party extensions via the `cocart_cart_extensions` filter. Only present when at least one extension hooks this filter.
-          additionalProperties: true
+          properties:
+            points_balance:
+              description: Points balance of the customer.
+              type: integer
+            points_to_earn:
+              description: Points the cart earns.
+              type: integer
+            redemption_coupon:
+              description: Points redemption coupon applied, or empty.
+              type: string
+        recurring_totals:
+          description: 'Recurring totals for each subscription in the cart, keyed by its item key. Plugins: WooCommerce Subscriptions, Milo Subscriptions.'
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              coupons:
+                description: Coupons applied to the recurring cart (not Milo Subscriptions).
+                type: array
+                items:
+                  $ref: '#/components/schemas/AppliedCoupon'
+              shipping:
+                description: Shipping of the recurring cart (not Milo Subscriptions).
+                allOf:
+                  - $ref: '#/components/schemas/Shipping'
+              fees:
+                description: Fees of the recurring cart, keyed by fee ID (not Milo Subscriptions).
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/CartFee'
+              taxes:
+                description: Taxes of the recurring cart (not Milo Subscriptions).
+                type: array
+                items:
+                  $ref: '#/components/schemas/CartTax'
+              totals:
+                description: Recurring totals.
+                type: object
+                properties:
+                  period:
+                    description: Billing period, e.g. "/ month".
+                    type: string
+                  subtotal:
+                    description: Recurring subtotal, in minor units (formatted for display with `formatted=true`).
+                    type: string
+                  total:
+                    description: Recurring total, in minor units (formatted for display with `formatted=true`).
+                    type: string
+                  label:
+                    description: Recurring total as WooCommerce displays it (not Milo Subscriptions).
+                    type: string
+                  first_renewal:
+                    description: First renewal.
+                    type: object
+                    properties:
+                      date:
+                        description: GMT date (Y-m-d H:i:s), or 0 when there is no renewal.
+                        oneOf:
+                          - type: string
+                          - type: integer
+                      formatted_date:
+                        description: Date formatted for display.
+                        type: string
+                      labelled:
+                        description: First renewal, ready to display.
+                        type: string
+      additionalProperties: true
     CartItem:
       type: object
       properties:
@@ -3267,9 +3585,344 @@ components:
           type: string
           description: Product featured image URL.
         extensions:
+          $ref: '#/components/schemas/CartItemExtensions'
+    CartItemExtensions:
+      description: Data added to a cart item by extensions (`cocart_cart_item_extensions`). `{}` when there is none. CoCart Plus adds the keys below, each only when its plugin is active and it applies to the item; other plugins can add their own.
+      type: object
+      properties:
+        accommodation_booking_data:
+          description: 'Accommodation booking check-in and check-out information for the cart item. Plugin: WooCommerce Accommodation Bookings.'
           type: object
-          description: Additional data added by third-party extensions via the `cocart_cart_item_extensions` filter. Empty object when no extensions hook this filter.
-          additionalProperties: true
+          properties:
+            check_in:
+              description: Check-in date and time.
+              type: string
+            check_out:
+              description: Check-out date and time.
+              type: string
+        addons:
+          description: 'Add-on selections made by the customer for this cart item. Plugin: WooCommerce Product Add-Ons.'
+          type: array
+          items:
+            type: object
+            properties:
+              field_label:
+                description: The add-on field label.
+                type: string
+              field_type:
+                description: The add-on field type (e.g. custom_text, multiple_choice, file_upload).
+                type: string
+              value:
+                description: The selected or entered value, pre-formatted for display.
+                type: string
+              price:
+                description: Price contribution of this selection.
+                type: string
+              price_type:
+                description: 'Price type: flat_fee, quantity_based, or percentage_based.'
+                type: string
+        adp:
+          description: 'Discount applied to this cart item by Advanced Dynamic Pricing. Plugin: Advanced Dynamic Pricing for WooCommerce.'
+          type: object
+          properties:
+            original_price:
+              description: Original per-unit price before discount.
+              type: string
+            saved_amount:
+              description: Amount saved on this line by the matched rule(s).
+              type: string
+            is_free_item:
+              description: Whether this item was added free by a Buy X Get Y rule.
+              type: boolean
+            rules:
+              description: Names of the pricing rules that matched this cart item.
+              type: array
+              items:
+                type: string
+        booking_data:
+          description: 'Booking configuration for the cart item. Plugin: WooCommerce Bookings.'
+          type: object
+          properties:
+            start_date:
+              description: Booking start date and time.
+              type: string
+            end_date:
+              description: Booking end date and time.
+              type: string
+            all_day:
+              description: Whether the booking spans the full day.
+              type: boolean
+            resource_id:
+              description: Resource ID assigned to the booking.
+              type: integer
+            persons:
+              description: Person counts per type for the booking.
+              type: array
+              items:
+                type: integer
+            cost:
+              description: Calculated booking cost in the smallest currency unit.
+              type: string
+        bundle_data:
+          description: 'Bundle configuration for the cart item. Plugin: WooCommerce Product Bundles.'
+          type: object
+          properties:
+            items:
+              description: Normalised bundle stamp keyed by bundled item ID.
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  id:
+                    description: Selected product or variation ID.
+                    type: integer
+                  quantity:
+                    description: Quantity information.
+                    type: object
+                    properties:
+                      value:
+                        description: Quantity value.
+                        type: integer
+                      minimum:
+                        description: Minimum quantity.
+                        type: integer
+                      maximum:
+                        description: Maximum quantity.
+                        type: integer
+                  variation:
+                    description: Selected variation attributes.
+                    type: object
+                    additionalProperties:
+                      type: string
+                  discount:
+                    description: Discount applied to this item, or null if none.
+                    type: number
+                    nullable: true
+                  optional_selected:
+                    description: Whether the customer included this optional item.
+                    type: boolean
+            child_items:
+              description: Summary of bundled child items nested under this container.
+              type: array
+              items:
+                type: object
+                properties:
+                  item_key:
+                    description: Cart item key of the child item.
+                    type: string
+                  bundled_item_id:
+                    description: Internal bundle definition ID for this child.
+                    type: integer
+                  id:
+                    description: Product or variation ID.
+                    type: integer
+                  name:
+                    description: Product name.
+                    type: string
+                  quantity:
+                    description: Quantity information.
+                    type: object
+                    properties:
+                      value:
+                        description: Quantity value.
+                        type: integer
+                      minimum:
+                        description: Minimum quantity.
+                        type: integer
+                      maximum:
+                        description: Maximum quantity.
+                        type: integer
+                  price:
+                    description: Unit price in the smallest currency unit.
+                    type: string
+                  variation:
+                    description: Selected variation attributes.
+                    type: object
+                    additionalProperties:
+                      type: string
+            child_item_keys:
+              description: Cart item keys of the bundled child items.
+              type: array
+              items:
+                type: string
+        composite_data:
+          description: 'Composite product configuration for the cart item. Plugin: WooCommerce Composite Products.'
+          type: object
+          properties:
+            components:
+              description: Component configuration indexed by component ID.
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  id:
+                    description: Selected product or variation ID for this component.
+                    type: integer
+                  quantity:
+                    description: Quantity information for this component.
+                    type: object
+                    properties:
+                      value:
+                        description: Quantity selected for this component.
+                        type: integer
+                      minimum:
+                        description: Minimum quantity allowed for this component.
+                        type: integer
+                      maximum:
+                        description: Maximum quantity allowed for this component, or null if unlimited.
+                        type: integer
+                        nullable: true
+                  variation:
+                    description: Selected variation attributes for this component.
+                    type: object
+                    additionalProperties:
+                      type: string
+                  discount:
+                    description: Discount applied to this component, or null if none.
+                    type: number
+                    nullable: true
+                  optional:
+                    description: Whether this component is optional.
+                    type: boolean
+                  priced_individually:
+                    description: Whether this component is priced individually.
+                    type: boolean
+                  shipped_individually:
+                    description: Whether this component is shipped individually.
+                    type: boolean
+                  title:
+                    description: Component title.
+                    type: string
+            child_item_keys:
+              description: Cart item keys of the composited child items.
+              type: array
+              items:
+                type: string
+        discount:
+          description: 'Discount applied to this cart item. Plugin: Discount Rules for WooCommerce.'
+          type: object
+          properties:
+            original_price:
+              description: Original per-unit price before discount.
+              type: string
+            saved_amount:
+              description: Amount saved on this line by the active rule.
+              type: string
+            is_free_item:
+              description: Whether this item was added free by a Buy X Get Y rule.
+              type: boolean
+        gift_recipient:
+          description: 'Gift recipient for this subscription cart item, set with `recipient_email` on `POST /cart/add-item`. Plugin: WooCommerce Subscriptions gifting.'
+          type: object
+          properties:
+            email:
+              description: Email address of the gift recipient.
+              type: string
+              format: email
+        subscription_data:
+          description: 'Subscription data (if any) for the item in the cart. Plugins: WooCommerce Subscriptions, Milo Subscriptions.'
+          type: object
+          properties:
+            billing_period:
+              description: Subscription billing period.
+              type: object
+              properties:
+                interval:
+                  description: Subscription billing interval.
+                  oneOf:
+                    - type: string
+                    - type: integer
+                period:
+                  description: Subscription billing period.
+                  type: string
+                length:
+                  description: Subscription billing length.
+                  oneOf:
+                    - type: string
+                    - type: integer
+                trial_period:
+                  description: Subscription billing trial period.
+                  type: string
+                trial_length:
+                  description: Subscription billing trial length.
+                  oneOf:
+                    - type: string
+                    - type: integer
+                trial_expiration_date:
+                  description: 'When the free trial ends: GMT date (Y-m-d H:i:s) for a subscription started now, or 0 when there is no trial.'
+                  oneOf:
+                    - type: string
+                    - type: integer
+                expiration_date:
+                  description: 'When the subscription ends: GMT date (Y-m-d H:i:s) for a subscription started now, or 0 when it never expires.'
+                  oneOf:
+                    - type: string
+                    - type: integer
+            sign_up_fee:
+              description: Subscription sign up fee.
+              type: string
+            pay_now:
+              description: Subscription amount to pay now.
+              type: string
+            needs_one_time_shipping:
+              description: Does the subscription only require shipping once?
+              type: boolean
+            price_string:
+              description: The price of the subscription.
+              type: string
+            first_renewal:
+              description: The subscriptions date and time of the first renewal.
+              type: object
+              properties:
+                date:
+                  description: 'First renewal: GMT date (Y-m-d H:i:s) for a subscription started now, or 0 when there is no renewal.'
+                  oneOf:
+                    - type: string
+                    - type: integer
+                timestamp:
+                  description: First renewal timestamp.
+                  type: integer
+                html:
+                  description: First renewal string.
+                  type: string
+        subscription_schemes:
+          description: 'Purchase options for this cart item: one-time and/or subscription plans, with the current one selected. Listed only when there is a choice. Plugin: All Products for WooCommerce Subscriptions.'
+          type: array
+          items:
+            type: object
+            properties:
+              price:
+                description: Scheme price.
+                type: string
+              period:
+                description: Scheme billing period label.
+                type: string
+              value:
+                description: 'Scheme key: send it as `convert_to_sub` with `namespace` `update-item-schema` and the `item_key` to `POST /cart/update` to switch the item to this option ("0" for one-time).'
+                type: string
+              selected:
+                description: Whether this scheme is currently selected.
+                type: boolean
+              rest_url:
+                description: Ready-made request to switch the item to this option (`POST`).
+                type: string
+        warranty:
+          description: 'Warranty selected for this cart item. Plugin: WooCommerce Warranty.'
+          type: object
+          properties:
+            label:
+              description: Warranty label.
+              type: string
+            type:
+              description: 'Warranty type: included or addon.'
+              type: string
+            duration:
+              description: Human-readable warranty duration.
+              type: string
+            cost:
+              description: Additional cost for this warranty.
+              type: string
+      additionalProperties: true
     Currency:
       type: object
       properties:
@@ -3403,10 +4056,12 @@ components:
           type: string
         cost:
           type: string
+          description: The rate cost. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`.
         html:
           type: string
         taxes:
           type: string
+          description: The rate tax cost, all of its taxes added together. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`.
         chosen_method:
           type: boolean
     CartTotals:
@@ -3463,19 +4118,14 @@ components:
           description: Total tax.
     CartFee:
       type: object
+      description: A fee added to the cart.
       properties:
         name:
           type: string
-        amount:
-          type: number
-        taxable:
-          type: boolean
-        tax_class:
+          description: Fee name.
+        fee:
           type: string
-        total:
-          type: number
-        tax:
-          type: number
+          description: Fee amount, including tax when the store displays prices including tax. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`.
     CartTax:
       type: object
       description: |
@@ -3509,10 +4159,10 @@ components:
           description: Type of discount applied (e.g. percent, fixed_cart, fixed_product).
         saving:
           type: string
-          description: Amount saved by this coupon, formatted without HTML.
+          description: Amount saved by this coupon, as a negative amount (e.g. `-180`, in the currency's minor units).
         saving_html:
           type: string
-          description: Amount saved by this coupon, formatted as HTML.
+          description: Amount saved by this coupon, formatted for display without a sign (e.g. `$1.80`). `saving` carries the negative sign.
     RemovedItem:
       type: object
       properties:
@@ -4254,6 +4904,421 @@ components:
           type: string
           format: email
           description: The email address the acknowledgement was sent to.
+    ProductExtensions:
+      description: What CoCart Plus adds to a product's `extensions` in the CoCart Starter products API (`GET /products`, `GET /products/{id}` and their variations). `{}` when there is none. Each key is there only when its plugin is active and it applies to the product; other plugins can add their own.
+      type: object
+      properties:
+        accommodation_booking_data:
+          description: 'Accommodation booking constraints for the product. Plugin: WooCommerce Accommodation Bookings.'
+          type: object
+          properties:
+            min_nights:
+              description: Minimum number of nights required for the booking.
+              type: integer
+            max_nights:
+              description: Maximum number of nights allowed for the booking.
+              type: integer
+            check_in_time:
+              description: Check-in time in HH:MM format.
+              type: string
+            check_out_time:
+              description: Check-out time in HH:MM format.
+              type: string
+        addons:
+          description: 'Add-on field definitions configured for this product. Plugin: WooCommerce Product Add-Ons.'
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                description: Unique add-on field identifier.
+                type: integer
+              name:
+                description: Add-on field label shown to the customer.
+                type: string
+              type:
+                description: Field type (custom_text, custom_textarea, multiple_choice, checkbox, select, datepicker, file_upload, input_multiplier, custom_price).
+                type: string
+              description:
+                description: Optional field description shown below the label.
+                type: string
+              required:
+                description: Whether the field must be filled before adding to cart.
+                type: boolean
+              position:
+                description: Display order position (zero-based).
+                type: integer
+              display:
+                description: Sub-display style for multiple_choice fields (select, radiobutton, images).
+                type: string
+              adjust_price:
+                description: Whether this field adds a price adjustment to the product price.
+                type: boolean
+              price:
+                description: Base price adjustment when adjust_price is true (options override this for choice-based types).
+                type: string
+              price_type:
+                description: 'Price type: flat_fee, quantity_based, or percentage_based.'
+                type: string
+              restrictions:
+                description: Whether min/max restrictions are enabled for this field.
+                type: boolean
+              min:
+                description: Minimum value (character count for text fields, quantity for multiplier, price for custom_price).
+                type: number
+              max:
+                description: Maximum value (same units as min).
+                type: number
+              limit_file_types:
+                description: Whether file type restrictions are enabled (file_upload fields only).
+                type: boolean
+              allowed_file_types:
+                description: Allowed file extensions when limit_file_types is true (e.g. ["jpg","pdf"]).
+                type: array
+                items:
+                  type: string
+              options:
+                description: Selectable options for choice-based field types.
+                type: array
+                items:
+                  type: object
+                  properties:
+                    label:
+                      description: Option label.
+                      type: string
+                    price:
+                      description: Price adjustment for this option.
+                      type: string
+                    price_type:
+                      description: Price type for this option.
+                      type: string
+                    image:
+                      description: Image URL for swatch display (multiple_choice with images display).
+                      type: string
+        booking_data:
+          description: 'Bookable product configuration. Plugin: WooCommerce Bookings.'
+          type: object
+          properties:
+            duration_type:
+              description: Whether the booking duration is fixed or set by the customer.
+              type: string
+            duration_unit:
+              description: Unit of time used for the booking duration.
+              type: string
+            duration:
+              description: Number of duration units for the booking.
+              type: integer
+            has_persons:
+              description: Whether the booking supports person counts.
+              type: boolean
+            min_persons:
+              description: Minimum number of persons required for the booking.
+              type: integer
+            max_persons:
+              description: Maximum number of persons allowed for the booking.
+              type: integer
+            has_resources:
+              description: Whether the booking has selectable resources.
+              type: boolean
+            resource_label:
+              description: Label displayed for the resource selector.
+              type: string
+            booking_location:
+              description: Location details for the booking.
+              type: string
+        bundle_data:
+          description: 'Bundle product form configuration. Plugin: WooCommerce Product Bundles.'
+          type: object
+          properties:
+            layout:
+              description: Bundle layout mode.
+              type: string
+            items:
+              description: Bundled item definitions for form rendering.
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    description: Bundled product ID.
+                    type: integer
+                  optional:
+                    description: Whether this bundled item is optional.
+                    type: boolean
+                  quantity:
+                    description: Quantity constraints for this bundled item.
+                    type: object
+                    properties:
+                      value:
+                        description: Default quantity.
+                        type: integer
+                      minimum:
+                        description: Minimum quantity.
+                        type: integer
+                      maximum:
+                        description: Maximum quantity, or null if unlimited.
+                        type: integer
+                        nullable: true
+                  priced_individually:
+                    description: Whether this bundled item is priced individually.
+                    type: boolean
+                  discount:
+                    description: Discount applied to this bundled item, or null if none.
+                    type: number
+                    nullable: true
+        composite_data:
+          description: 'Composite product form configuration. Plugin: WooCommerce Composite Products.'
+          type: object
+          properties:
+            layout:
+              description: Composite layout mode.
+              type: string
+            components:
+              description: Component definitions for form rendering.
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    description: Component ID.
+                    type: string
+                  title:
+                    description: Component title.
+                    type: string
+                  optional:
+                    description: Whether this component is optional.
+                    type: boolean
+                  quantity_min:
+                    description: Minimum quantity for this component.
+                    type: integer
+                  quantity_max:
+                    description: Maximum quantity for this component, or null if unlimited.
+                    type: integer
+                    nullable: true
+                  priced_individually:
+                    description: Whether this component is priced individually.
+                    type: boolean
+                  discount:
+                    description: Discount applied to this component, or null if none.
+                    type: number
+                    nullable: true
+                  default_option_id:
+                    description: Default product ID pre-selected for this component.
+                    type: integer
+                  options_style:
+                    description: Display style for component options.
+                    type: string
+        condition:
+          description: 'Product condition information. Plugin: Product Condition for WooCommerce.'
+          type: object
+          properties:
+            slug:
+              description: Condition slug identifier.
+              type: string
+            label:
+              description: Human-readable condition label.
+              type: string
+            schema_condition:
+              description: Schema.org OfferItemCondition value.
+              type: string
+            custom_label:
+              description: Custom condition label text, when condition is "other" or "new-other".
+              type: string
+        discount:
+          description: 'Active discount information for this product. Plugin: Discount Rules for WooCommerce.'
+          type: object
+          properties:
+            original_price:
+              description: Original price before the discount rule is applied.
+              type: string
+            saved_amount:
+              description: Amount saved by the active discount rule.
+              type: string
+        gifting:
+          description: 'Gifting configuration for this product. Plugin: WooCommerce Subscriptions gifting.'
+          type: object
+          properties:
+            giftable:
+              description: Whether this product can be purchased as a gift for a recipient (send `recipient_email` to `POST /cart/add-item`).
+              type: boolean
+        msrp_data:
+          description: "Manufacturer's suggested retail price data for the product. Plugin: WooCommerce MSRP Pricing."
+          type: object
+          properties:
+            msrp_price:
+              description: MSRP in the smallest currency unit (simple products only).
+              type: string
+            msrp_price_min:
+              description: Lowest MSRP across variations in the smallest currency unit (variable products only).
+              type: string
+            msrp_price_max:
+              description: Highest MSRP across variations in the smallest currency unit (variable products only).
+              type: string
+        points_and_rewards:
+          description: 'Points earning and redemption data for the product. Plugin: WooCommerce Points and Rewards.'
+          type: object
+          properties:
+            points_earned:
+              description: Number of points earned when purchasing this product.
+              type: integer
+            max_discount:
+              description: Maximum discount redeemable on this product in the smallest currency unit. Empty string when no limit is set.
+              type: string
+        quantity_rules:
+          description: 'Quantity purchase rules for the product. Plugin: WooCommerce Min/Max Quantities.'
+          type: object
+          properties:
+            minimum:
+              description: Minimum quantity required to purchase. Zero means no minimum.
+              type: integer
+            maximum:
+              description: Maximum quantity allowed to purchase, or null if unlimited.
+              type: integer
+              nullable: true
+            group_of:
+              description: Quantity must be purchased in multiples of this value. Zero means no restriction.
+              type: integer
+            combine_variations:
+              description: Whether quantities across all variations are combined when checking rules (variable products only).
+              type: boolean
+        subscription_data:
+          description: 'Subscription data (if any) for the product. Plugins: WooCommerce Subscriptions, Milo Subscriptions.'
+          type: object
+          properties:
+            billing_period:
+              description: Subscription billing period details.
+              type: object
+              properties:
+                interval:
+                  description: Subscription billing interval.
+                  oneOf:
+                    - type: string
+                    - type: integer
+                period:
+                  description: Subscription billing period.
+                  type: string
+                length:
+                  description: Subscription billing length.
+                  oneOf:
+                    - type: string
+                    - type: integer
+                trial_period:
+                  description: Subscription trial period.
+                  type: string
+                trial_length:
+                  description: Subscription trial length.
+                  oneOf:
+                    - type: string
+                    - type: integer
+                trial_expiration_date:
+                  description: 'When the free trial ends: GMT date (Y-m-d H:i:s) for a subscription started now, or 0 when there is no trial.'
+                  oneOf:
+                    - type: string
+                    - type: integer
+                expiration_date:
+                  description: 'When the subscription ends: GMT date (Y-m-d H:i:s) for a subscription started now, or 0 when it never expires.'
+                  oneOf:
+                    - type: string
+                    - type: integer
+            sign_up_fee:
+              description: Subscription sign up fee.
+              type: string
+            pay_now:
+              description: Subscription amount to pay now.
+              type: string
+            needs_one_time_shipping:
+              description: Does the subscription only require shipping once?
+              type: boolean
+            price_string:
+              description: The subscription price string.
+              type: string
+            first_renewal:
+              description: The first renewal date and time of the subscription.
+              type: object
+              properties:
+                date:
+                  description: 'First renewal: GMT date (Y-m-d H:i:s) for a subscription started now, or 0 when there is no renewal.'
+                  oneOf:
+                    - type: string
+                    - type: integer
+                timestamp:
+                  description: First renewal Unix timestamp.
+                  type: integer
+                html:
+                  description: First renewal date as a human-readable string.
+                  type: string
+        subscription_schemes:
+          description: 'Purchase options for this product: one-time and/or subscription plans. Listed only when there is a choice. Plugin: All Products for WooCommerce Subscriptions.'
+          type: array
+          items:
+            type: object
+            properties:
+              price:
+                description: Scheme price.
+                type: string
+              period:
+                description: Scheme billing period label.
+                type: string
+              value:
+                description: 'Scheme key: send it as `convert_to_sub` to `POST /cart/add-item` to add the product with this option ("0" for one-time). Without `convert_to_sub` the default option applies.'
+                type: string
+              rest_url:
+                description: Ready-made request to add the product with this option (`POST`).
+                type: string
+        vendor:
+          description: 'Vendor store information for the product. Plugin: Dokan.'
+          type: object
+          properties:
+            id:
+              description: Unique vendor identifier.
+              type: integer
+            store_name:
+              description: Vendor store display name.
+              type: string
+            store_url:
+              description: URL to the vendor store page.
+              type: string
+              format: uri
+            avatar:
+              description: URL to the vendor avatar image.
+              type: string
+              format: uri
+            rating:
+              description: Vendor rating summary.
+              type: object
+              properties:
+                average:
+                  description: Average vendor rating across all products.
+                  type: string
+                count:
+                  description: Total number of reviews for the vendor.
+                  type: integer
+        warranty:
+          description: 'Warranty configuration for this product. Plugin: WooCommerce Warranty.'
+          type: object
+          properties:
+            type:
+              description: 'Warranty type: included or addon.'
+              type: string
+            label:
+              description: Warranty field label shown to the customer.
+              type: string
+            options:
+              description: Selectable warranty tiers.
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    description: Key to send as `item_data[warranty]` to `POST /cart/add-item` to choose this warranty (the numeric index works too).
+                    type: string
+                  duration:
+                    description: Human-readable warranty duration.
+                    type: string
+                  cost:
+                    description: Additional cost for this warranty tier.
+                    type: string
+      additionalProperties: true
 security:
   - {}
   - basicAuth: []

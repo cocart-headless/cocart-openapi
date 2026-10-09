@@ -8,6 +8,21 @@ info:
     to the cart.
 
     Requires CoCart Starter v5.0+ to be installed and active.
+
+    **Choices sent on CoCart Starter routes**
+
+    Some extension data describes a choice the customer makes. The choice is sent to
+    CoCart Starter's cart routes, which aren't part of this spec:
+
+    - Subscription plans (`subscription_schemes`): send the option's `value` as
+      `convert_to_sub` to `POST /cart/add-item` (`"0"` for one-time; without it
+      the default option applies). To switch a cart item, send `namespace`
+      `update-item-schema`, the `item_key` and `convert_to_sub` to
+      `POST /cart/update`. Each option's `rest_url` is that request, ready-made.
+    - Gifting (WooCommerce Subscriptions gifting): send `recipient_email` to
+      `POST /cart/add-item`.
+    - WooCommerce Warranty: send the option's `key` (or its index) as
+      `item_data[warranty]` to `POST /cart/add-item`.
   termsOfService: https://cocartapi.com/terms-of-conditions-polar/
   contact:
     email: support@cocartapi.com
@@ -307,6 +322,421 @@ components:
               description: HTTP status code.
               example: 400
           additionalProperties: true
+    ProductExtensions:
+      description: What CoCart Plus adds to a product's `extensions` in the CoCart Starter products API (`GET /products`, `GET /products/{id}` and their variations). `{}` when there is none. Each key is there only when its plugin is active and it applies to the product; other plugins can add their own.
+      type: object
+      properties:
+        accommodation_booking_data:
+          description: 'Accommodation booking constraints for the product. Plugin: WooCommerce Accommodation Bookings.'
+          type: object
+          properties:
+            min_nights:
+              description: Minimum number of nights required for the booking.
+              type: integer
+            max_nights:
+              description: Maximum number of nights allowed for the booking.
+              type: integer
+            check_in_time:
+              description: Check-in time in HH:MM format.
+              type: string
+            check_out_time:
+              description: Check-out time in HH:MM format.
+              type: string
+        addons:
+          description: 'Add-on field definitions configured for this product. Plugin: WooCommerce Product Add-Ons.'
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                description: Unique add-on field identifier.
+                type: integer
+              name:
+                description: Add-on field label shown to the customer.
+                type: string
+              type:
+                description: Field type (custom_text, custom_textarea, multiple_choice, checkbox, select, datepicker, file_upload, input_multiplier, custom_price).
+                type: string
+              description:
+                description: Optional field description shown below the label.
+                type: string
+              required:
+                description: Whether the field must be filled before adding to cart.
+                type: boolean
+              position:
+                description: Display order position (zero-based).
+                type: integer
+              display:
+                description: Sub-display style for multiple_choice fields (select, radiobutton, images).
+                type: string
+              adjust_price:
+                description: Whether this field adds a price adjustment to the product price.
+                type: boolean
+              price:
+                description: Base price adjustment when adjust_price is true (options override this for choice-based types).
+                type: string
+              price_type:
+                description: 'Price type: flat_fee, quantity_based, or percentage_based.'
+                type: string
+              restrictions:
+                description: Whether min/max restrictions are enabled for this field.
+                type: boolean
+              min:
+                description: Minimum value (character count for text fields, quantity for multiplier, price for custom_price).
+                type: number
+              max:
+                description: Maximum value (same units as min).
+                type: number
+              limit_file_types:
+                description: Whether file type restrictions are enabled (file_upload fields only).
+                type: boolean
+              allowed_file_types:
+                description: Allowed file extensions when limit_file_types is true (e.g. ["jpg","pdf"]).
+                type: array
+                items:
+                  type: string
+              options:
+                description: Selectable options for choice-based field types.
+                type: array
+                items:
+                  type: object
+                  properties:
+                    label:
+                      description: Option label.
+                      type: string
+                    price:
+                      description: Price adjustment for this option.
+                      type: string
+                    price_type:
+                      description: Price type for this option.
+                      type: string
+                    image:
+                      description: Image URL for swatch display (multiple_choice with images display).
+                      type: string
+        booking_data:
+          description: 'Bookable product configuration. Plugin: WooCommerce Bookings.'
+          type: object
+          properties:
+            duration_type:
+              description: Whether the booking duration is fixed or set by the customer.
+              type: string
+            duration_unit:
+              description: Unit of time used for the booking duration.
+              type: string
+            duration:
+              description: Number of duration units for the booking.
+              type: integer
+            has_persons:
+              description: Whether the booking supports person counts.
+              type: boolean
+            min_persons:
+              description: Minimum number of persons required for the booking.
+              type: integer
+            max_persons:
+              description: Maximum number of persons allowed for the booking.
+              type: integer
+            has_resources:
+              description: Whether the booking has selectable resources.
+              type: boolean
+            resource_label:
+              description: Label displayed for the resource selector.
+              type: string
+            booking_location:
+              description: Location details for the booking.
+              type: string
+        bundle_data:
+          description: 'Bundle product form configuration. Plugin: WooCommerce Product Bundles.'
+          type: object
+          properties:
+            layout:
+              description: Bundle layout mode.
+              type: string
+            items:
+              description: Bundled item definitions for form rendering.
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    description: Bundled product ID.
+                    type: integer
+                  optional:
+                    description: Whether this bundled item is optional.
+                    type: boolean
+                  quantity:
+                    description: Quantity constraints for this bundled item.
+                    type: object
+                    properties:
+                      value:
+                        description: Default quantity.
+                        type: integer
+                      minimum:
+                        description: Minimum quantity.
+                        type: integer
+                      maximum:
+                        description: Maximum quantity, or null if unlimited.
+                        type: integer
+                        nullable: true
+                  priced_individually:
+                    description: Whether this bundled item is priced individually.
+                    type: boolean
+                  discount:
+                    description: Discount applied to this bundled item, or null if none.
+                    type: number
+                    nullable: true
+        composite_data:
+          description: 'Composite product form configuration. Plugin: WooCommerce Composite Products.'
+          type: object
+          properties:
+            layout:
+              description: Composite layout mode.
+              type: string
+            components:
+              description: Component definitions for form rendering.
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    description: Component ID.
+                    type: string
+                  title:
+                    description: Component title.
+                    type: string
+                  optional:
+                    description: Whether this component is optional.
+                    type: boolean
+                  quantity_min:
+                    description: Minimum quantity for this component.
+                    type: integer
+                  quantity_max:
+                    description: Maximum quantity for this component, or null if unlimited.
+                    type: integer
+                    nullable: true
+                  priced_individually:
+                    description: Whether this component is priced individually.
+                    type: boolean
+                  discount:
+                    description: Discount applied to this component, or null if none.
+                    type: number
+                    nullable: true
+                  default_option_id:
+                    description: Default product ID pre-selected for this component.
+                    type: integer
+                  options_style:
+                    description: Display style for component options.
+                    type: string
+        condition:
+          description: 'Product condition information. Plugin: Product Condition for WooCommerce.'
+          type: object
+          properties:
+            slug:
+              description: Condition slug identifier.
+              type: string
+            label:
+              description: Human-readable condition label.
+              type: string
+            schema_condition:
+              description: Schema.org OfferItemCondition value.
+              type: string
+            custom_label:
+              description: Custom condition label text, when condition is "other" or "new-other".
+              type: string
+        discount:
+          description: 'Active discount information for this product. Plugin: Discount Rules for WooCommerce.'
+          type: object
+          properties:
+            original_price:
+              description: Original price before the discount rule is applied.
+              type: string
+            saved_amount:
+              description: Amount saved by the active discount rule.
+              type: string
+        gifting:
+          description: 'Gifting configuration for this product. Plugin: WooCommerce Subscriptions gifting.'
+          type: object
+          properties:
+            giftable:
+              description: Whether this product can be purchased as a gift for a recipient (send `recipient_email` to `POST /cart/add-item`).
+              type: boolean
+        msrp_data:
+          description: "Manufacturer's suggested retail price data for the product. Plugin: WooCommerce MSRP Pricing."
+          type: object
+          properties:
+            msrp_price:
+              description: MSRP in the smallest currency unit (simple products only).
+              type: string
+            msrp_price_min:
+              description: Lowest MSRP across variations in the smallest currency unit (variable products only).
+              type: string
+            msrp_price_max:
+              description: Highest MSRP across variations in the smallest currency unit (variable products only).
+              type: string
+        points_and_rewards:
+          description: 'Points earning and redemption data for the product. Plugin: WooCommerce Points and Rewards.'
+          type: object
+          properties:
+            points_earned:
+              description: Number of points earned when purchasing this product.
+              type: integer
+            max_discount:
+              description: Maximum discount redeemable on this product in the smallest currency unit. Empty string when no limit is set.
+              type: string
+        quantity_rules:
+          description: 'Quantity purchase rules for the product. Plugin: WooCommerce Min/Max Quantities.'
+          type: object
+          properties:
+            minimum:
+              description: Minimum quantity required to purchase. Zero means no minimum.
+              type: integer
+            maximum:
+              description: Maximum quantity allowed to purchase, or null if unlimited.
+              type: integer
+              nullable: true
+            group_of:
+              description: Quantity must be purchased in multiples of this value. Zero means no restriction.
+              type: integer
+            combine_variations:
+              description: Whether quantities across all variations are combined when checking rules (variable products only).
+              type: boolean
+        subscription_data:
+          description: 'Subscription data (if any) for the product. Plugins: WooCommerce Subscriptions, Milo Subscriptions.'
+          type: object
+          properties:
+            billing_period:
+              description: Subscription billing period details.
+              type: object
+              properties:
+                interval:
+                  description: Subscription billing interval.
+                  oneOf:
+                  - type: string
+                  - type: integer
+                period:
+                  description: Subscription billing period.
+                  type: string
+                length:
+                  description: Subscription billing length.
+                  oneOf:
+                  - type: string
+                  - type: integer
+                trial_period:
+                  description: Subscription trial period.
+                  type: string
+                trial_length:
+                  description: Subscription trial length.
+                  oneOf:
+                  - type: string
+                  - type: integer
+                trial_expiration_date:
+                  description: 'When the free trial ends: GMT date (Y-m-d H:i:s) for a subscription started now, or 0 when there is no trial.'
+                  oneOf:
+                  - type: string
+                  - type: integer
+                expiration_date:
+                  description: 'When the subscription ends: GMT date (Y-m-d H:i:s) for a subscription started now, or 0 when it never expires.'
+                  oneOf:
+                  - type: string
+                  - type: integer
+            sign_up_fee:
+              description: Subscription sign up fee.
+              type: string
+            pay_now:
+              description: Subscription amount to pay now.
+              type: string
+            needs_one_time_shipping:
+              description: Does the subscription only require shipping once?
+              type: boolean
+            price_string:
+              description: The subscription price string.
+              type: string
+            first_renewal:
+              description: The first renewal date and time of the subscription.
+              type: object
+              properties:
+                date:
+                  description: 'First renewal: GMT date (Y-m-d H:i:s) for a subscription started now, or 0 when there is no renewal.'
+                  oneOf:
+                  - type: string
+                  - type: integer
+                timestamp:
+                  description: First renewal Unix timestamp.
+                  type: integer
+                html:
+                  description: First renewal date as a human-readable string.
+                  type: string
+        subscription_schemes:
+          description: 'Purchase options for this product: one-time and/or subscription plans. Listed only when there is a choice. Plugin: All Products for WooCommerce Subscriptions.'
+          type: array
+          items:
+            type: object
+            properties:
+              price:
+                description: Scheme price.
+                type: string
+              period:
+                description: Scheme billing period label.
+                type: string
+              value:
+                description: 'Scheme key: send it as `convert_to_sub` to `POST /cart/add-item` to add the product with this option ("0" for one-time). Without `convert_to_sub` the default option applies.'
+                type: string
+              rest_url:
+                description: Ready-made request to add the product with this option (`POST`).
+                type: string
+        vendor:
+          description: 'Vendor store information for the product. Plugin: Dokan.'
+          type: object
+          properties:
+            id:
+              description: Unique vendor identifier.
+              type: integer
+            store_name:
+              description: Vendor store display name.
+              type: string
+            store_url:
+              description: URL to the vendor store page.
+              type: string
+              format: uri
+            avatar:
+              description: URL to the vendor avatar image.
+              type: string
+              format: uri
+            rating:
+              description: Vendor rating summary.
+              type: object
+              properties:
+                average:
+                  description: Average vendor rating across all products.
+                  type: string
+                count:
+                  description: Total number of reviews for the vendor.
+                  type: integer
+        warranty:
+          description: 'Warranty configuration for this product. Plugin: WooCommerce Warranty.'
+          type: object
+          properties:
+            type:
+              description: 'Warranty type: included or addon.'
+              type: string
+            label:
+              description: Warranty field label shown to the customer.
+              type: string
+            options:
+              description: Selectable warranty tiers.
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    description: Key to send as `item_data[warranty]` to `POST /cart/add-item` to choose this warranty (the numeric index works too).
+                    type: string
+                  duration:
+                    description: Human-readable warranty duration.
+                    type: string
+                  cost:
+                    description: Additional cost for this warranty tier.
+                    type: string
+      additionalProperties: true
 security:
 - {}
 - basicAuth: []
