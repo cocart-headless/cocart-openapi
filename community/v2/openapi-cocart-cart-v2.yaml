@@ -183,8 +183,8 @@ paths:
                 - coupon: SUMMER20
                   label: Summer Sale 20% Off
                   discount_type: percent
-                  saving: '2320'
-                  saving_html: <strong>$23.20</strong>
+                  saving: '-2320'
+                  saving_html: '$23.20'
                 needs_payment: true
                 needs_shipping: true
                 shipping:
@@ -1819,10 +1819,10 @@ components:
           description: Type of discount applied (e.g. percent, fixed_cart, fixed_product).
         saving:
           type: string
-          description: Amount saved by this coupon, formatted without HTML.
+          description: Amount saved by this coupon, as a negative amount (e.g. `-180`, in the currency's minor units).
         saving_html:
           type: string
-          description: Amount saved by this coupon, formatted as HTML.
+          description: Amount saved by this coupon, formatted for display without a sign (e.g. `$1.80`). `saving` carries the negative sign.
     RemovedItem:
       type: object
       properties:

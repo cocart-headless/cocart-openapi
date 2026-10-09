@@ -204,8 +204,8 @@ paths:
                   - coupon: "SUMMER20"
                     label: "Summer Sale 20% Off"
                     discount_type: percent
-                    saving: "2320"
-                    saving_html: "<strong>$23.20</strong>"
+                    saving: "-2320"
+                    saving_html: "$23.20"
                 needs_payment: true
                 needs_shipping: true
                 shipping:
@@ -1813,13 +1813,91 @@ paths:
                     default_attributes: {}
                     variations:
                       - id: 211
-                        permalink: "https://example-store.com/product/woo-fashion-sweater/?attribute_pa_color=green&attribute_pa_size=large"
-                        sku: "woo-fashion-sweater-green-large"
-                        rest_url: "https://example-store.com/wp-json/cocart/v2/products/201/variations/211"
+                        sku: woo-fashion-sweater-green-large
+                        description: ""
+                        attributes:
+                          attribute_pa_color: green
+                          attribute_pa_size: large
+                        featured_image:
+                          thumbnail: https://example-store.com/wp-content/plugins/wccom-plugins/sample-products/images/167113823-3f0757ff-c7c2-44d0-a1e9-0b006772b39a.jpeg
+                          medium: https://example-store.com/wp-content/plugins/wccom-plugins/sample-products/images/167113823-3f0757ff-c7c2-44d0-a1e9-0b006772b39a.jpeg
+                          large: https://example-store.com/wp-content/plugins/wccom-plugins/sample-products/images/167113823-3f0757ff-c7c2-44d0-a1e9-0b006772b39a.jpeg
+                          full: https://example-store.com/wp-content/plugins/wccom-plugins/sample-products/images/167113823-3f0757ff-c7c2-44d0-a1e9-0b006772b39a.jpeg
+                        prices:
+                          price: "1600"
+                          regular_price: "1800"
+                          sale_price: "1600"
+                          on_sale: true
+                          date_on_sale:
+                            from: null
+                            from_gmt: null
+                            to: null
+                            to_gmt: null
+                          currency:
+                            currency_code: USD
+                            currency_symbol: $
+                            currency_minor_unit: 2
+                            currency_decimal_separator: .
+                            currency_thousand_separator: ","
+                            currency_prefix: $
+                            currency_suffix: ""
+                        stock:
+                          is_in_stock: true
+                          stock_quantity: 5
+                          stock_status: instock
+                          backorders: 'no'
+                          backorders_allowed: false
+                          backordered: false
+                          low_stock_amount: null
+                        add_to_cart:
+                          is_purchasable: true
+                          purchase_quantity:
+                            min_purchase: 1
+                            max_purchase: 5
+                          rest_url: https://example-store.com/wp-json/cocart/v2/cart/add-item?id=211&quantity=1&variation[attribute_pa_color]=green&variation[attribute_pa_size]=large
                       - id: 212
-                        permalink: "https://example-store.com/product/woo-fashion-sweater/?attribute_pa_color=beige&attribute_pa_size=medium"
-                        sku: "woo-fashion-sweater-beige-medium"
-                        rest_url: "https://example-store.com/wp-json/cocart/v2/products/201/variations/212"
+                        sku: woo-fashion-sweater-beige-medium
+                        description: ""
+                        attributes:
+                          attribute_pa_color: beige
+                          attribute_pa_size: medium
+                        featured_image:
+                          thumbnail: https://example-store.com/wp-content/plugins/wccom-plugins/sample-products/images/167113823-3f0757ff-c7c2-44d0-a1e9-0b006772b39a.jpeg
+                          medium: https://example-store.com/wp-content/plugins/wccom-plugins/sample-products/images/167113823-3f0757ff-c7c2-44d0-a1e9-0b006772b39a.jpeg
+                          large: https://example-store.com/wp-content/plugins/wccom-plugins/sample-products/images/167113823-3f0757ff-c7c2-44d0-a1e9-0b006772b39a.jpeg
+                          full: https://example-store.com/wp-content/plugins/wccom-plugins/sample-products/images/167113823-3f0757ff-c7c2-44d0-a1e9-0b006772b39a.jpeg
+                        prices:
+                          price: "1600"
+                          regular_price: "1800"
+                          sale_price: "1600"
+                          on_sale: true
+                          date_on_sale:
+                            from: null
+                            from_gmt: null
+                            to: null
+                            to_gmt: null
+                          currency:
+                            currency_code: USD
+                            currency_symbol: $
+                            currency_minor_unit: 2
+                            currency_decimal_separator: .
+                            currency_thousand_separator: ","
+                            currency_prefix: $
+                            currency_suffix: ""
+                        stock:
+                          is_in_stock: true
+                          stock_quantity: 5
+                          stock_status: instock
+                          backorders: 'no'
+                          backorders_allowed: false
+                          backordered: false
+                          low_stock_amount: null
+                        add_to_cart:
+                          is_purchasable: true
+                          purchase_quantity:
+                            min_purchase: 1
+                            max_purchase: 5
+                          rest_url: https://example-store.com/wp-json/cocart/v2/cart/add-item?id=212&quantity=1&variation[attribute_pa_color]=beige&variation[attribute_pa_size]=medium
                     grouped_products: []
                     stock:
                       is_in_stock: true
@@ -2030,13 +2108,11 @@ paths:
                       attribute_size:
                         id: 1
                         name: "Size"
-                        option:
-                          medium: "Medium"
+                        option: medium
                       attribute_color:
                         id: 2
                         name: "Color"
-                        option:
-                          white: "White"
+                        option: white
                     variations:
                       - id: 289
                         sku: "PCT-2024-SM-WHT"
@@ -3333,18 +3409,16 @@ paths:
                           slug: "premium"
                           rest_url: "https://example-store.com/wp-json/cocart/v2/products/tags/8"
                       attributes:
-                        - id: 1
-                          name: "Size"
-                          position: 0
-                          visible: true
-                          variation: true
-                          options: ["Large"]
-                        - id: 2
-                          name: "Color"
-                          position: 1
-                          visible: true
-                          variation: true
-                          options: ["Navy Blue"]
+                        attribute_pa_size:
+                          id: 1
+                          name: Size
+                          option:
+                            large: Large
+                        attribute_pa_color:
+                          id: 2
+                          name: Color
+                          option:
+                            navy-blue: Navy Blue
                       stock:
                         is_in_stock: true
                         stock_quantity: 45
@@ -3436,18 +3510,16 @@ paths:
                           slug: "premium"
                           rest_url: "https://example-store.com/wp-json/cocart/v2/products/tags/8"
                       attributes:
-                        - id: 1
-                          name: "Size"
-                          position: 0
-                          visible: true
-                          variation: true
-                          options: ["Medium"]
-                        - id: 2
-                          name: "Color"
-                          position: 1
-                          visible: true
-                          variation: true
-                          options: ["White"]
+                        attribute_pa_size:
+                          id: 1
+                          name: Size
+                          option:
+                            medium: Medium
+                        attribute_pa_color:
+                          id: 2
+                          name: Color
+                          option:
+                            white: White
                       stock:
                         is_in_stock: true
                         stock_quantity: 78
@@ -3539,22 +3611,16 @@ paths:
                           slug: "fashion"
                           rest_url: "https://example-store.com/wp-json/cocart/v2/products/tags/101"
                       attributes:
-                        attribute_color:
+                        attribute_pa_color:
                           id: 2
-                          name: "Color"
-                          position: 0
-                          is_attribute_visible: true
-                          used_for_variation: true
-                          options:
-                            green: "Green"
-                        attribute_size:
+                          name: Color
+                          option:
+                            green: Green
+                        attribute_pa_size:
                           id: 1
-                          name: "Size"
-                          position: 1
-                          is_attribute_visible: true
-                          used_for_variation: true
-                          options:
-                            large: "Large"
+                          name: Size
+                          option:
+                            large: Large
                       stock:
                         is_in_stock: true
                         stock_quantity: 3
@@ -3714,18 +3780,16 @@ paths:
                         slug: "premium"
                         rest_url: "https://example-store.com/wp-json/cocart/v2/products/tags/8"
                     attributes:
-                      - id: 1
-                        name: "Size"
-                        position: 0
-                        visible: true
-                        variation: true
-                        options: ["Large"]
-                      - id: 2
-                        name: "Color"
-                        position: 1
-                        visible: true
-                        variation: true
-                        options: ["Navy Blue"]
+                      attribute_pa_size:
+                        id: 1
+                        name: Size
+                        option:
+                          large: Large
+                      attribute_pa_color:
+                        id: 2
+                        name: Color
+                        option:
+                          navy-blue: Navy Blue
                     stock:
                       is_in_stock: true
                       stock_quantity: 45
@@ -3817,22 +3881,16 @@ paths:
                         slug: "fashion"
                         rest_url: "https://example-store.com/wp-json/cocart/v2/products/tags/101"
                     attributes:
-                      attribute_color:
+                      attribute_pa_color:
                         id: 2
-                        name: "Color"
-                        position: 0
-                        is_attribute_visible: true
-                        used_for_variation: true
-                        options:
-                          green: "Green"
-                      attribute_size:
+                        name: Color
+                        option:
+                          green: Green
+                      attribute_pa_size:
                         id: 1
-                        name: "Size"
-                        position: 1
-                        is_attribute_visible: true
-                        used_for_variation: true
-                        options:
-                          large: "Large"
+                        name: Size
+                        option:
+                          large: Large
                     stock:
                       is_in_stock: true
                       stock_quantity: 3
@@ -4257,8 +4315,7 @@ components:
   headers:
     ETagHeader:
       description: >
-        Weak ETag cache validation token. Format: W/"<md5hash>".
-        Use in If-None-Match on subsequent requests for conditional GET.
+        Weak ETag cache validation token. Format: W/"<md5hash>". Use in If-None-Match on subsequent requests for conditional GET.
       schema:
         type: string
         pattern: '^W/"[a-f0-9]{32}"$'
@@ -4276,8 +4333,7 @@ components:
       name: If-None-Match
       in: header
       description: >
-        Conditional request header. Send previous ETag value; server returns 304
-        Not Modified if resource unchanged.
+        Conditional request header. Send previous ETag value; server returns 304 Not Modified if resource unchanged.
       required: false
       schema:
         type: string
@@ -4286,8 +4342,7 @@ components:
       name: _skip_cache
       in: query
       description: >
-        Set to true or 1 to bypass ETag checking. Forces full response with
-        CoCart-Cache: SKIP header.
+        Set to true or 1 to bypass ETag checking. Forces full response with CoCart-Cache: SKIP header.
       required: false
       schema:
         type: string
@@ -4505,6 +4560,10 @@ components:
         currency_suffix:
           type: string
           description: Currency suffix.
+    EmptyArray:
+      type: array
+      maxItems: 0
+      description: An empty PHP array, which JSON-encodes as `[]`. Sent instead of an empty object (`{}`) where there is no data.
 
     Customer:
       type: object
@@ -4721,10 +4780,10 @@ components:
           description: Type of discount applied (e.g. percent, fixed_cart, fixed_product).
         saving:
           type: string
-          description: Amount saved by this coupon, formatted without HTML.
+          description: Amount saved by this coupon, as a negative amount (e.g. `-180`, in the currency's minor units).
         saving_html:
           type: string
-          description: Amount saved by this coupon, formatted as HTML.
+          description: Amount saved by this coupon, formatted for display without a sign (e.g. `$1.80`). `saving` carries the negative sign.
 
     RemovedItem:
       type: object
@@ -4937,20 +4996,19 @@ components:
           items:
             $ref: "#/components/schemas/ProductTag"
         attributes:
-          type: array
-          description: Product attributes
-          items:
-            $ref: "#/components/schemas/ProductAttribute"
+          $ref: "#/components/schemas/ProductAttributes"
         default_attributes:
-          type: array
-          description: Default variation attributes
-          items:
-            $ref: "#/components/schemas/ProductDefaultAttribute"
+          description: Default variation attributes, keyed by `attribute_<slug>`. `[]` when there are none.
+          oneOf:
+            - type: object
+              additionalProperties:
+                $ref: "#/components/schemas/ProductDefaultAttribute"
+            - $ref: "#/components/schemas/EmptyArray"
         variations:
           type: array
-          description: Full variation objects (not just IDs)
+          description: Summaries of the product's variations. `[]` for other product types.
           items:
-            $ref: "#/components/schemas/ProductVariation"
+            $ref: "#/components/schemas/ProductVariationSummary"
         grouped_products:
           type: array
           description: Grouped product IDs
@@ -5193,6 +5251,36 @@ components:
           description: List of available term names of the attribute.
           items:
             type: string
+    ProductAttributeDetail:
+      type: object
+      description: An attribute assigned to a product.
+      properties:
+        id:
+          type: integer
+          description: Attribute ID. `0` for a custom (non-taxonomy) attribute.
+        name:
+          type: string
+          description: Attribute label.
+        position:
+          type: integer
+        is_attribute_visible:
+          type: boolean
+          description: Whether it shows on the product page.
+        used_for_variation:
+          type: boolean
+          description: Whether variations are made from it.
+        options:
+          type: object
+          description: Term slug → label. Labels may contain stray whitespace from the product editor.
+          additionalProperties:
+            type: string
+    ProductAttributes:
+      description: The product's attributes, keyed by `attribute_<slug>` (e.g. `attribute_pa_color`, `attribute_logo`). `[]` when it has none.
+      oneOf:
+        - type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ProductAttributeDetail"
+        - $ref: "#/components/schemas/EmptyArray"
 
     ProductDefaultAttribute:
       type: object
@@ -5205,7 +5293,7 @@ components:
           description: Attribute name.
         option:
           type: string
-          description: Selected attribute term name.
+          description: "Default option: the term slug or custom value."
 
     ProductAttributeTerm:
       type: object
@@ -5399,10 +5487,12 @@ components:
           items:
             $ref: "#/components/schemas/ProductTag"
         attributes:
-          type: array
-          description: Variation attributes
-          items:
-            $ref: "#/components/schemas/ProductAttribute"
+          description: The variation's attributes, keyed by `attribute_<slug>`. Attributes set to "any" are left out.
+          oneOf:
+            - type: object
+              additionalProperties:
+                $ref: "#/components/schemas/ProductVariationAttribute"
+            - $ref: "#/components/schemas/EmptyArray"
         stock:
           type: object
           description: Stock information
@@ -5501,6 +5591,105 @@ components:
                 type: string
               value:
                 type: string
+    ProductVariationSummary:
+      type: object
+      description: A variation as embedded in its parent product. Fetch `/products/{id}/variations/{variation_id}` for the full variation.
+      properties:
+        id:
+          type: integer
+        sku:
+          type: string
+        description:
+          type: string
+        attributes:
+          type: object
+          description: '`attribute_<slug>` → value, as used to add the variation to the cart. Taxonomy attributes carry the term slug (`blue`), custom ones the value (`Yes`). An empty value means "any".'
+          additionalProperties:
+            type: string
+        featured_image:
+          description: Image size → URL.
+          oneOf:
+            - type: object
+              additionalProperties:
+                type: string
+            - $ref: "#/components/schemas/EmptyArray"
+        prices:
+          type: object
+          properties:
+            price:
+              type: string
+            regular_price:
+              type: string
+            sale_price:
+              type: string
+            on_sale:
+              type: boolean
+            date_on_sale:
+              type: object
+              properties:
+                from:
+                  type: string
+                  format: date-time
+                  nullable: true
+                from_gmt:
+                  type: string
+                  format: date-time
+                  nullable: true
+                to:
+                  type: string
+                  format: date-time
+                  nullable: true
+                to_gmt:
+                  type: string
+                  format: date-time
+                  nullable: true
+            currency:
+              $ref: "#/components/schemas/Currency"
+        stock:
+          type: object
+          properties:
+            is_in_stock:
+              type: boolean
+            stock_quantity:
+              type: integer
+              nullable: true
+            stock_status:
+              type: string
+              enum:
+                - instock
+                - outofstock
+                - onbackorder
+            backorders:
+              type: string
+              enum:
+                - 'no'
+                - notify
+                - 'yes'
+            backorders_allowed:
+              type: boolean
+            backordered:
+              type: boolean
+            low_stock_amount:
+              description: Low stock threshold. `""` or `null` when not set.
+              oneOf:
+                - type: integer
+                  nullable: true
+                - type: string
+        add_to_cart:
+          type: object
+          properties:
+            is_purchasable:
+              type: boolean
+            purchase_quantity:
+              type: object
+              properties:
+                min_purchase:
+                  type: integer
+                max_purchase:
+                  type: integer
+                  description: "`-1` for no limit."
+            rest_url:
+              type: string
 
     ConnectedProduct:
       type: object
@@ -5540,13 +5729,15 @@ components:
       properties:
         id:
           type: integer
-          description: Attribute ID.
+          description: Attribute ID. `0` for a custom attribute.
         name:
           type: string
-          description: Attribute name.
+          description: Attribute label.
         option:
-          type: string
-          description: Selected attribute term name.
+          type: object
+          description: 'The chosen term: slug → label (e.g. `{ "blue": "Blue" }`).'
+          additionalProperties:
+            type: string
 
     CartSession:
       type: object

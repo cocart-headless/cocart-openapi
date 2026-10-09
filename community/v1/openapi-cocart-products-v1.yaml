@@ -1771,70 +1771,95 @@ components:
           items:
             $ref: "#/components/schemas/ProductImage"
         attributes:
-          type: array
-          description: List of product attributes.
+          description: Attributes of the product, keyed by `attribute_<slug>` (e.g. `attribute_pa_color`, `attribute_logo`). `[]` when it has none.
           readOnly: true
-          items:
-            type: object
-            properties:
-              id:
-                type: integer
-                description: Attribute ID.
-                readOnly: true
-              name:
-                type: string
-                description: Attribute name.
-                readOnly: true
-              position:
-                type: integer
-                description: Attribute position.
-                readOnly: true
-              is_attribute_visible:
-                type: boolean
-                description: "Is the attribute visible on the \"Additional information\" tab in the product's page."
-                default: false
-                readOnly: true
-              used_for_variation:
-                type: boolean
-                description: Can the attribute be used as a variation?
-                default: false
-                readOnly: true
-              options:
-                type: array
-                description: List of available term names of the attribute.
-                readOnly: true
-                items:
-                  type: string
+          oneOf:
+            - type: object
+              additionalProperties:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: Attribute ID.
+                    readOnly: true
+                  name:
+                    type: string
+                    description: Attribute name.
+                    readOnly: true
+                  position:
+                    type: integer
+                    description: Attribute position.
+                    readOnly: true
+                  is_attribute_visible:
+                    type: boolean
+                    description: "Is the attribute visible on the \"Additional information\" tab in the product's page."
+                    default: false
+                    readOnly: true
+                  used_for_variation:
+                    type: boolean
+                    description: Can the attribute be used as a variation?
+                    default: false
+                    readOnly: true
+                  options:
+                    type: array
+                    description: List of available term names of the attribute.
+                    readOnly: true
+                    items:
+                      type: string
+            - $ref: "#/components/schemas/EmptyArray"
         default_attributes:
-          type: array
-          description: Defaults variation attributes.
+          description: Default variation attributes, keyed by `attribute_<slug>`. `[]` when there are none.
           readOnly: true
-          items:
-            type: object
-            properties:
-              id:
-                type: integer
-                description: Attribute ID.
-                readOnly: true
-              name:
-                type: string
-                description: Attribute name.
-                readOnly: true
-              option:
-                type: string
-                description: Selected attribute term name.
-                readOnly: true
+          oneOf:
+            - type: object
+              additionalProperties:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: Attribute ID.
+                    readOnly: true
+                  name:
+                    type: string
+                    description: Attribute name.
+                    readOnly: true
+                  option:
+                    type: string
+                    description: "Default option: the term slug or custom value."
+                    readOnly: true
+            - $ref: "#/components/schemas/EmptyArray"
         variations:
-          type: array
-          description: "List of all variation IDs and data if requested true with the return_variations parameter."
+          description: Variations of the product, keyed by variation ID. `[]` for other product types.
           readOnly: true
-          items:
-            type: object
-            properties:
-              id:
-                type: integer
-                description: Variation ID.
-                readOnly: true
+          oneOf:
+            - type: object
+              additionalProperties:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: Variation ID.
+                    readOnly: true
+                  attributes:
+                    description: Attributes of the variation, keyed by `attribute_<slug>`. Attributes set to "any" are left out. `[]` when there are none.
+                    oneOf:
+                      - type: object
+                        additionalProperties:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              description: Attribute ID.
+                            name:
+                              type: string
+                              description: Attribute name.
+                            option:
+                              type: string
+                              description: Selected attribute term name.
+                      - $ref: "#/components/schemas/EmptyArray"
+                description: The variation. Only `id` unless `return_variations` is set, which adds the rest of its data (see `ProductVariation`, though not every field is the same).
+                additionalProperties: true
+            - $ref: "#/components/schemas/EmptyArray"
         grouped_products:
           type: array
           description: List of grouped product IDs.
@@ -1864,6 +1889,10 @@ components:
               type: string
               description: Add to cart button description.
               readOnly: true
+    EmptyArray:
+      type: array
+      maxItems: 0
+      description: An empty PHP array, which JSON-encodes as `[]`. Sent instead of an empty object (`{}`) where there is no data.
 
     ProductVariation:
       type: object
@@ -2027,20 +2056,22 @@ components:
               type: string
               description: Image alternative text.
         attributes:
-          type: array
-          description: List of attributes.
-          items:
-            type: object
-            properties:
-              id:
-                type: integer
-                description: Attribute ID.
-              name:
-                type: string
-                description: Attribute name.
-              option:
-                type: string
-                description: Selected attribute term name.
+          description: Attributes of the variation, keyed by `attribute_<slug>`. Attributes set to "any" are left out. `[]` when there are none.
+          oneOf:
+            - type: object
+              additionalProperties:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: Attribute ID.
+                  name:
+                    type: string
+                    description: Attribute name.
+                  option:
+                    type: string
+                    description: Selected attribute term name.
+            - $ref: "#/components/schemas/EmptyArray"
         menu_order:
           type: integer
           description: Menu order, used to custom sort products.
