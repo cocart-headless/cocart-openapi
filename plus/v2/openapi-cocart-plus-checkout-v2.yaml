@@ -16,6 +16,12 @@ info:
     When rate limiting is enabled, responses include `RateLimit-Limit`,
     `RateLimit-Remaining` and `RateLimit-Reset` headers (plus `RateLimit-Retry-After`
     on 429 responses).
+
+    Checkout and order-received responses belong to one cart or order, so they
+    are kept out of shared caches (CDNs, a host's nginx microcache):
+    `Cache-Control: no-cache, no-store, must-revalidate, max-age=0, private`,
+    `Expires` in the past, `Pragma: no-cache`, `X-Accel-Expires: 0` (consumed by
+    nginx) and `Vary: Cart-Key, CoCart-API-Cart-Key, Authorization`.
   termsOfService: https://cocartapi.com/terms-of-conditions-polar/
   contact:
     email: support@cocartapi.com
@@ -451,7 +457,7 @@ paths:
                     method_id: flat_rate
                     instance_id: 1
                 payment_method: stripe
-                fees: []
+                fees: {}
                 cart_totals:
                   subtotal: '3600'
                   subtotal_tax: '0'
@@ -545,17 +551,31 @@ paths:
 
         Unlike `POST /order-received/{order_id}/pay`, a payment failure here does
         NOT raise an HTTP error - the order is still created and a `200` is returned
-        with `payment_result.payment_status` set to `"failed"`.
+        with `payment_result.payment_status` set to `"failed"`. The draft order and
+        cart session are kept, so the customer can retry (e.g. with another card)
+        by calling `POST /checkout` again, which pays the same order.
+        `payment_result.message` is a customer-facing message and
+        `payment_result.error` carries a stable `code` to branch on (see
+        `PaymentError`); `cocart_checkout_complete` does not fire.
 
         When the gateway requires further customer action before the payment can
         complete (e.g. 3D Secure/SCA), `payment_result.payment_status` is
         `"requires_action"` and `action_type`/`action_data` describe what the
-        client must do (gateway-specific - e.g. for Stripe, `action_data.client_secret`
-        to confirm client-side). In this case the transaction has NOT finished:
-        the draft order and cart session are deliberately left intact, and
-        `cocart_checkout_complete` does not fire. Once the client has completed
-        the action, call `POST /checkout` again with the same cart/session to
-        land on the same order rather than creating a duplicate.
+        client must do. In this case the transaction has NOT finished: the draft
+        order and cart session are deliberately left intact, and
+        `cocart_checkout_complete` does not fire.
+
+        - **In-page step** (e.g. `stripe_confirm_payment`, with
+          `action_data.client_secret`): confirm it client-side, then call
+          `POST /checkout` again with the same cart/session to land on the same
+          order rather than creating a duplicate.
+        - **Off-site step** (`gateway_redirect_required`, with
+          `action_data.redirect`): send the customer to `action_data.redirect`.
+          The gateway returns them to the order-received URL, which points at the
+          headless frontend when a Front-end site URL is set (and at the "Order
+          Received Path" when configured). The frontend then calls
+          `POST /order-received/{order_id}/confirm` with the return URL's query
+          parameters to complete the order.
       requestBody:
         required: true
         content:
@@ -584,7 +604,7 @@ paths:
                 country: US
               payment_method: stripe
               payment_data:
-                - key: paymentMethodID
+                - key: wc-stripe-payment-method
                   value: pm_1H8x2y2eZvKYlo2C
               shipping_method: flat_rate:1
               customer_note: Please leave at the front door.
@@ -667,6 +687,37 @@ paths:
                       state: CA
                       postcode: '90210'
                       country: US
+                requires_redirect:
+                  summary: Gateway sends the customer off-site (e.g. a Stripe-hosted 3D Secure page)
+                  description: |
+                    Send the customer to `action_data.redirect`. When they come back to
+                    the order-received URL, call `POST /order-received/{order_id}/confirm`.
+                  value:
+                    order_id: 1234
+                    status: pending
+                    order_key: wc_order_abc123
+                    order_number: '1234'
+                    payment_result:
+                      payment_status: requires_action
+                      action_type: gateway_redirect_required
+                      action_data:
+                        redirect: https://hooks.stripe.com/3d_secure_2/hosted?merchant=acct_123&payment_intent=pi_3H8x2y2eZvKYlo2C&payment_intent_client_secret=pi_3H8x2y2eZvKYlo2C_secret_abc123
+                    customer_id: 0
+                failed:
+                  summary: Payment declined (the cart and draft order are kept for a retry)
+                  value:
+                    order_id: 1234
+                    status: pending
+                    order_key: wc_order_abc123
+                    order_number: '1234'
+                    payment_result:
+                      payment_status: failed
+                      message: Your card was declined. Try a different card or payment method.
+                      error:
+                        code: card_declined
+                        gateway_code: generic_decline
+                        gateway_message: 'There was an error processing the payment: The card was declined.'
+                    customer_id: 0
         '400':
           description: Bad request - cart/customer validation failed, or the order could not be processed.
           content:
@@ -850,12 +901,36 @@ paths:
                     data:
                       status: 400
                 account_creation_failed:
-                  summary: Guest account creation failed
+                  summary: Guest account creation failed (other than the email already being registered, see 409)
                   value:
                     code: cocart_account_creation_failed
-                    message: An account with this email address already exists.
+                    message: Please provide a valid account username.
                     data:
                       status: 400
+        '409':
+          description: Conflict - the cart total changed since the client last saw it, or the email belongs to a registered customer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                total_mismatch:
+                  summary: The cart total changed since the last GET/PUT/PATCH /checkout
+                  description: Re-read the checkout and show the customer the new total before placing the order again.
+                  value:
+                    code: cocart_checkout_total_mismatch
+                    message: The cart total has changed since it was last calculated. Please review the cart before trying to checkout again.
+                    data:
+                      status: 409
+                account_exists:
+                  summary: Creating an account for an email that is already registered
+                  description: '`data.account_exists` is `true`: ask the customer to sign in, then place the order again.'
+                  value:
+                    code: cocart_account_exists
+                    message: An account is already registered with your email address. Please sign in to finish your order.
+                    data:
+                      account_exists: true
+                      status: 409
         '401':
           description: Unauthorized - no cart session and not logged in.
           content:
@@ -1123,7 +1198,7 @@ paths:
             example:
               payment_method: stripe
               payment_data:
-                - key: paymentMethodID
+                - key: wc-stripe-payment-method
                   value: pm_1H8x2y2eZvKYlo2C
       responses:
         '200':
@@ -1198,6 +1273,177 @@ paths:
                   value:
                     code: cocart_payment_failed
                     message: Payment could not be processed. Please try again.
+                    data:
+                      status: 400
+        '403':
+          description: Forbidden - the order key does not match, or a logged-in customer does not own this order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_key:
+                  summary: Order key does not match
+                  value:
+                    code: cocart_order_invalid_key
+                    message: Invalid order key.
+                    data:
+                      status: 403
+                not_owned:
+                  summary: Logged-in customer does not own this order
+                  value:
+                    code: cocart_order_not_owned
+                    message: You do not have permission to access this order.
+                    data:
+                      status: 403
+        '404':
+          description: Not found - the order does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: cocart_order_not_found
+                message: Order not found.
+                data:
+                  status: 404
+  /order-received/{order_id}/confirm:
+    post:
+      tags:
+        - orders
+      summary: Confirm an order's payment after an off-site step
+      description: |
+        Finishes a payment after the customer returns from an off-site step,
+        such as a Stripe-hosted 3D Secure page or a PayPal approval
+        (`payment_result.action_type: gateway_redirect_required` on
+        `POST /checkout`). Gateways send the customer back to the order-received
+        URL, which points at the headless frontend when a Front-end site URL is
+        set, with their own parameters on the query string. Nothing on WordPress
+        sees that return, so the frontend forwards every query parameter here as
+        `return_params`.
+
+        The gateway's own completion logic runs (through the
+        `cocart_confirm_order_payment` filter); nothing the client reports about
+        the payment is trusted, as the gateway re-checks it with the provider.
+        Built-in support covers WooCommerce Stripe Gateway, WooPayments, PayPal
+        Payments and Mollie. Once the order is paid, the cart session that placed
+        it is cleared and `cocart_checkout_complete` fires once.
+
+        Safe to call more than once: an order that is already paid is reported as
+        `success` (or `on_hold`). Keep the gateway's webhooks enabled as a safety
+        net for customers who close the tab before the frontend page loads.
+
+        Access requires the `order_key` matching the order (same rules as
+        `GET /order-received/{order_id}`).
+      parameters:
+        - name: order_id
+          in: path
+          description: Unique identifier for the order. Must be numeric.
+          required: true
+          schema:
+            type: integer
+        - name: order_key
+          in: query
+          description: The order's key (the `key` parameter on the return URL).
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order_key:
+                  description: The order's key. May be sent here instead of, or as well as, the query parameter.
+                  type: string
+                return_params:
+                  description: Every query parameter the payment provider added to the return URL, passed through unchanged.
+                  type: object
+                  additionalProperties:
+                    type: string
+                  default: {}
+            example:
+              order_key: wc_order_abc123
+              return_params:
+                key: wc_order_abc123
+                order_id: '1234'
+                wc_payment_method: stripe
+                payment_intent: pi_3H8x2y2eZvKYlo2C
+                payment_intent_client_secret: pi_3H8x2y2eZvKYlo2C_secret_abc123
+                redirect_status: succeeded
+      responses:
+        '200':
+          description: The confirmation ran. See `payment_result.payment_status` for the outcome.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfirmOrderPaymentResponse'
+              examples:
+                success:
+                  summary: Paid
+                  value:
+                    order_id: 1234
+                    status: processing
+                    order_key: wc_order_abc123
+                    order_number: '1234'
+                    payment_result:
+                      payment_status: success
+                      redirect_url: https://headless.example.com/order/1234?key=wc_order_abc123
+                failed:
+                  summary: Declined or cancelled at the provider
+                  description: The order can be paid again with `POST /order-received/{order_id}/pay`.
+                  value:
+                    order_id: 1234
+                    status: failed
+                    order_key: wc_order_abc123
+                    order_number: '1234'
+                    payment_result:
+                      payment_status: failed
+                      redirect_url: https://headless.example.com/order/1234?key=wc_order_abc123
+                      message: The payment was cancelled. Please try again or use a different payment method.
+                pending:
+                  summary: Not confirmed yet
+                  description: |
+                    No gateway integration recognised the return, or the provider hasn't
+                    settled the payment yet (its webhook may still do so). Check the
+                    order again shortly with `GET /order-received/{order_id}`.
+                  value:
+                    order_id: 1234
+                    status: pending
+                    order_key: wc_order_abc123
+                    order_number: '1234'
+                    payment_result:
+                      payment_status: pending
+                      redirect_url: https://headless.example.com/order/1234?key=wc_order_abc123
+                      message: The payment has not been confirmed yet. Check the order again shortly.
+        '400':
+          description: Bad request - the order ID or order key is missing, or the return belongs to another order's payment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_params:
+                  summary: Order ID or order key missing
+                  value:
+                    code: cocart_order_invalid_params
+                    message: Order ID and order key are required.
+                    data:
+                      status: 400
+                stripe_intent_mismatch:
+                  summary: The returned Stripe PaymentIntent isn't this order's
+                  value:
+                    code: cocart_stripe_intent_mismatch
+                    message: This payment does not belong to this order.
+                    data:
+                      status: 400
+                wcpay_intent_mismatch:
+                  summary: The returned WooPayments intent isn't this order's
+                  value:
+                    code: cocart_wcpay_intent_mismatch
+                    message: This payment does not belong to this order.
                     data:
                       status: 400
         '403':
@@ -1316,7 +1562,7 @@ components:
                 method_id: flat_rate
                 instance_id: 1
             payment_method: stripe
-            fees: []
+            fees: {}
             cart_totals:
               subtotal: '3600'
               subtotal_tax: '0'
@@ -1414,10 +1660,10 @@ components:
           type: string
           description: The currently chosen payment gateway ID.
         fees:
-          type: array
-          description: Cart fees.
-          items:
-            $ref: '#/components/schemas/CartFee'
+          description: Fees added to the cart, keyed by fee ID. `{}` when there are none.
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/CartFee"
         cart_totals:
           $ref: '#/components/schemas/CartTotals'
         message:
@@ -1507,7 +1753,7 @@ components:
           description: The created order's ID.
         status:
           type: string
-          description: The order's status after processing (e.g. `pending`, `processing`, `on-hold`).
+          description: "The order's status after payment, as the gateway left it: e.g. `on-hold` for bank transfer, cheque or cash on delivery, `processing` for a paid card, `pending` while 3D Secure or a redirect is outstanding or after a declined card."
         order_key:
           type: string
           description: The order's unique key, used to authorize access to order confirmation endpoints.
@@ -1527,39 +1773,129 @@ components:
       type: object
       description: |
         The outcome of payment processing. The field set present depends on
-        `payment_status`: `success`/`no_payment_required` return `redirect_url`;
-        `failed` returns `message`; `requires_action` returns `action_type` and
-        `action_data` instead of either.
+        `payment_status`: `success`/`no_payment_required`/`on_hold` return
+        `redirect_url`; `failed` returns `message` and `error`; `requires_action`
+        returns `action_type` and `action_data` instead.
       properties:
         payment_status:
           type: string
-          description: The outcome of payment processing.
+          description: |
+            The outcome of payment processing. `on_hold` means the payment was
+            taken or authorised but the order needs review (not an error).
           enum:
             - success
             - failed
             - no_payment_required
             - requires_action
+            - on_hold
         redirect_url:
           type: string
           format: uri
-          description: URL to redirect the customer to (typically the order-received page, or a gateway redirect for off-site payment methods). Present when `payment_status` is `success` or `no_payment_required`.
+          description: |
+            URL to send the customer to: the order-received page, rewritten to the
+            headless frontend when a Front-end site URL is set (and to the "Order
+            Received Path" when configured). Present when `payment_status` is
+            `success`, `no_payment_required` or `on_hold`.
         message:
           type: string
-          description: Additional human-readable message about the payment result. Present when `payment_status` is `failed`.
+          description: |
+            Customer-facing message about the payment result. Present when
+            `payment_status` is `failed`: the CoCart message for `error.code` when
+            the reason is known, otherwise the gateway's own message.
+        error:
+          $ref: '#/components/schemas/PaymentError'
         action_type:
           type: string
           description: |
             Identifies the kind of customer action required. Present only when
-            `payment_status` is `requires_action`. Gateway-specific
-            (e.g. `stripe_confirm_payment` for Stripe 3D Secure/SCA).
+            `payment_status` is `requires_action` (and occasionally `on_hold`).
+            Known values: `stripe_confirm_payment` and `wcpay_confirm_payment`
+            (confirm in the page with `action_data.client_secret`, then
+            `POST /checkout` again), `gateway_redirect_required` (send the
+            customer to `action_data.redirect`, then
+            `POST /order-received/{order_id}/confirm` on return). Not exhaustive:
+            other gateway integrations may add their own.
         action_data:
           type: object
           description: |
             Data the client needs to complete the required action. Present only
-            when `payment_status` is `requires_action`. Shape is gateway-specific
-            - for Stripe, includes `client_secret` and `intent_type`
-            (`payment_intent` or `setup_intent`).
+            when `payment_status` is `requires_action`. Shape depends on
+            `action_type`: `client_secret` and `intent_type` (`payment_intent` or
+            `setup_intent`) for the in-page confirmations, `redirect` (a URL) for
+            `gateway_redirect_required`.
           additionalProperties: true
+    PaymentError:
+      type: object
+      description: |
+        Why a payment failed, in a form a frontend can branch on. Present on
+        `payment_result` when `payment_status` is `failed`. Fraud-related declines
+        (lost or stolen cards, fraud rules) are reported as a plain `card_declined`,
+        as payment providers recommend.
+      properties:
+        code:
+          type: string
+          description: |
+            Stable CoCart error code, mapped from the gateway's reason (Stripe and
+            WooPayments decline codes built in; other gateways can report one with
+            the `cocart_record_payment_error` action). `payment_failed` when the
+            reason isn't known. Filterable with `cocart_payment_error_code_map`.
+          enum:
+            - card_declined
+            - insufficient_funds
+            - expired_card
+            - incorrect_cvc
+            - incorrect_number
+            - incorrect_postcode
+            - authentication_failed
+            - processing_error
+            - payment_method_not_supported
+            - amount_not_supported
+            - payment_failed
+        gateway_code:
+          type: string
+          description: The gateway's own error or decline code, lowercased (e.g. Stripe's `generic_decline`). Empty when the gateway didn't report one.
+        gateway_message:
+          type: string
+          description: The gateway's own message, as it would show on the classic checkout. For logging; show `message` to the customer.
+    ConfirmOrderPaymentResponse:
+      type: object
+      description: Response of `POST /order-received/{order_id}/confirm`.
+      properties:
+        order_id:
+          type: integer
+          description: The order's ID.
+        status:
+          type: string
+          description: The order's status after confirmation (e.g. `processing`, `on-hold`, `pending`, `failed`).
+        order_key:
+          type: string
+          description: The order's key.
+        order_number:
+          type: string
+          description: The order's display number.
+        payment_result:
+          type: object
+          properties:
+            payment_status:
+              type: string
+              description: |
+                `success`/`on_hold`: paid (or held for review), and the cart session
+                that placed the order has been cleared. `failed`: declined or
+                cancelled at the provider; retry with
+                `POST /order-received/{order_id}/pay`. `pending`: not confirmed yet;
+                poll `GET /order-received/{order_id}`.
+              enum:
+                - success
+                - on_hold
+                - failed
+                - pending
+            redirect_url:
+              type: string
+              format: uri
+              description: The order-received URL (on the headless frontend when a Front-end site URL is set).
+            message:
+              type: string
+              description: Customer-facing message, when there is one (e.g. why it failed, or that it's still pending).
     BillingAddress:
       type: object
       description: Billing address using unprefixed field names.
@@ -1728,19 +2064,14 @@ components:
           description: Amount saved by this coupon, formatted as HTML.
     CartFee:
       type: object
+      description: A fee added to the cart.
       properties:
         name:
           type: string
-        amount:
-          type: number
-        taxable:
-          type: boolean
-        tax_class:
+          description: Fee name.
+        fee:
           type: string
-        total:
-          type: number
-        tax:
-          type: number
+          description: Fee amount, including tax when the store displays prices including tax. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`.
     ShippingMethodOption:
       type: object
       properties:
@@ -1752,7 +2083,7 @@ components:
           description: Shipping method label.
         cost:
           type: string
-          description: Shipping cost as a raw numeric string.
+          description: Shipping cost in minor units (e.g. `"500"`), or formatted (e.g. `"$5.00"`) when requested with `formatted`.
         method_id:
           type: string
           description: Shipping method ID.
@@ -2106,14 +2437,19 @@ components:
           type: string
         total:
           type: string
+          description: Order total, in minor units (e.g. `"2530"`). `totals` has the amounts formatted for display.
         subtotal:
           type: string
+          description: Order subtotal, in minor units (e.g. `"2530"`). `totals` has the amounts formatted for display.
         tax_total:
           type: string
+          description: Total tax, in minor units (e.g. `"2530"`). `totals` has the amounts formatted for display.
         shipping_total:
           type: string
+          description: Shipping total, in minor units (e.g. `"2530"`). `totals` has the amounts formatted for display.
         discount_total:
           type: string
+          description: Discount total, in minor units (e.g. `"2530"`). `totals` has the amounts formatted for display.
         payment_method:
           type: string
         payment_method_title:
@@ -2262,6 +2598,7 @@ components:
           type: integer
         order_status:
           type: string
+          description: The order's status after payment, as the gateway left it.
         redirect_url:
           type: string
           format: uri
