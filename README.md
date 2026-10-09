@@ -67,7 +67,7 @@ Reflects CoCart Plus **v2.0.0** (In development).
 | [Products](plus/v2/openapi-cocart-plus-products-v2.yaml) | Product Shipping Calculation | 1 path |
 | [My Account](plus/v2/openapi-cocart-plus-my-account-v2.yaml) | My account - customer dashboard, address, orders, downloads, subscriptions (list, view, suspend, cancel, reactivate, auto-renew, payment method, resubscribe) | 16 paths |
 | [Others](plus/v2/openapi-cocart-plus-others-v2.yaml) | Customer registration, Order withdrawal | 2 paths |
-| [Checkout](plus/v2/openapi-cocart-plus-checkout-v2.yaml) | Checkout - process orders, process payments | 7 paths |
+| [Checkout](plus/v2/openapi-cocart-plus-checkout-v2.yaml) | Checkout - process orders, process payments, confirm payments after an off-site step (3D Secure, redirect gateways) | 8 paths |
 
 ### CoCart SEO Pack
 
