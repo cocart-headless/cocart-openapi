@@ -56,36 +56,24 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/CartSession'
+                  $ref: '#/components/schemas/SessionSummary'
               example:
-              - session_key: cb7a23af96a3f23af3c28a8b4b8c6d5e
-                cart:
-                  d6b3e8e5a1b0c6e4f2a3b1d8c5e6f9a2:
-                    key: d6b3e8e5a1b0c6e4f2a3b1d8c5e6f9a2
-                    product_id: 145
-                    variation_id: 0
-                    quantity: 2
-                    line_total: 36.0
-                    line_tax: 3.6
-                customer:
-                  billing_email: john.doe@example.com
-                  billing_first_name: John
-                  billing_last_name: Doe
-                session_expiry: '2024-10-15T18:30:00'
-              - session_key: f8d9e1a2b3c4d5e6f7a8b9c0d1e2f3a4
-                cart:
-                  a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6:
-                    key: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6
-                    product_id: 278
-                    variation_id: 289
-                    quantity: 1
-                    line_total: 80.0
-                    line_tax: 8.0
-                customer:
-                  billing_email: jane.smith@example.com
-                  billing_first_name: Jane
-                  billing_last_name: Smith
-                session_expiry: '2024-10-16T12:15:00'
+              - cart_id: 12
+                cart_key: cb7a23af96a3f23af3c28a8b4b8c6d5e
+                customers_name: John Doe
+                customers_email: john.doe@example.com
+                cart_created: 10/04/2026 09:30:11
+                cart_expiry: 10/06/2026 09:30:11
+                cart_source: cocart
+                link: https://example-store.com/wp-json/cocart/v2/session/cb7a23af96a3f23af3c28a8b4b8c6d5e
+              - cart_id: 13
+                cart_key: t_f8d9e1a2b3c4d5e6f7a8b9c0d1e2f3
+                customers_name: ""
+                customers_email: ""
+                cart_created: 10/04/2026 10:02:45
+                cart_expiry: 10/06/2026 10:02:45
+                cart_source: cocart
+                link: https://example-store.com/wp-json/cocart/v2/session/t_f8d9e1a2b3c4d5e6f7a8b9c0d1e2f3
         '400':
           description: Bad request - invalid parameters.
           content:
@@ -353,10 +341,12 @@ components:
           description: Unique session key.
         cart:
           type: object
-          description: Cart data for this session.
+          description: The stored cart contents.
+          additionalProperties: true
         customer:
           type: object
-          description: Customer data for this session.
+          description: The stored customer data.
+          additionalProperties: true
         session_expiry:
           type: string
           format: date-time
@@ -400,20 +390,16 @@ components:
               description: Whether the quantity of the item is editable.
         totals:
           type: object
-          description: Item totals.
+          description: Line totals in the currency's minor units, as strings (formatted strings when `formatted` is true).
           properties:
             subtotal:
-              type: number
-              description: Line subtotal (before discounts).
+              type: string
             subtotal_tax:
-              type: number
-              description: Line subtotal tax.
+              type: string
             total:
-              type: number
-              description: Line total (after discounts).
+              type: string
             tax:
-              type: number
-              description: Line total tax.
+              type: string
         slug:
           type: string
           description: Product slug.
@@ -452,16 +438,30 @@ components:
                 items:
                   type: string
           additionalProperties: true
+          required:
+          - product_type
+          - sku
+          - dimensions
+          - weight
         backorders:
           type: string
           description: Backorder status.
         cart_item_data:
+          description: Custom data stored with the item. `{}` when there is none.
           type: object
-          description: Custom cart item data.
           additionalProperties: true
         featured_image:
           type: string
           description: Product featured image URL.
+        variation:
+          description: "Attribute label → chosen value for a variation (e.g. `Color: Blue`). `{}` for other items."
+          type: object
+          additionalProperties:
+            type: string
+        extensions:
+          description: Data added by extensions. `{}` when there is none.
+          type: object
+          additionalProperties: true
     ErrorResponse:
       type: object
       description: Standard error response structure.
@@ -487,3 +487,34 @@ components:
               description: Parameter-specific error details.
               additionalProperties: true
           additionalProperties: true
+    SessionSummary:
+      type: object
+      description: A cart session as listed by `GET /sessions`.
+      properties:
+        cart_id:
+          type: integer
+          description: Session row ID.
+        cart_key:
+          type: string
+          description: The cart key.
+        customers_name:
+          type: string
+          description: Customer's first and last name, if known. Empty otherwise.
+        customers_email:
+          type: string
+          description: Customer's email, if known. Empty otherwise.
+        cart_created:
+          type: string
+          description: When the session was created, as `m/d/Y H:i:s` (GMT).
+          example: 10/04/2026 09:30:11
+        cart_expiry:
+          type: string
+          description: When the session expires, as `m/d/Y H:i:s` (GMT).
+          example: 10/06/2026 09:30:11
+        cart_source:
+          type: string
+          description: Where the cart was created (e.g. `cocart`, `woocommerce`).
+        link:
+          type: string
+          format: uri
+          description: URL of this session in the REST API (`GET /session/{session_key}`).

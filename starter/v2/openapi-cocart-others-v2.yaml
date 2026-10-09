@@ -60,6 +60,11 @@ paths:
       responses:
         '200':
           description: User logged in successfully.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/SessionCacheControlHeader'
+            Vary:
+              $ref: '#/components/headers/SessionVaryHeader'
           content:
             application/json:
               schema:
@@ -76,8 +81,7 @@ paths:
                   '96': https://secure.gravatar.com/avatar/example?s=96&d=mm&r=g
                 email: john.doe@example.com
                 extras: {}
-                dev_note: Don't forget to store the users login information in order to authenticate all other routes with
-                  CoCart.
+                dev_note: Don't forget to store the users login information in order to authenticate all other routes with CoCart.
         '400':
           description: Bad request - invalid credentials.
           content:
@@ -109,6 +113,11 @@ paths:
       responses:
         '200':
           description: User logged out successfully.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/SessionCacheControlHeader'
+            Vary:
+              $ref: '#/components/headers/SessionVaryHeader'
           content:
             application/json:
               schema:
@@ -165,6 +174,66 @@ paths:
       security:
       - {}
 components:
+  headers:
+    CartKeyHeader:
+      description: |
+        The cart key for this session. Send it back in the `Cart-Key` request
+        header (or the `cart_key` query parameter) to keep using the same cart.
+      schema:
+        type: string
+        example: t_d8f5452294c521ed95f41f90b8768d
+    SessionCacheControlHeader:
+      description: |
+        Per-session responses are kept out of shared caches (CDNs, a host's nginx
+        microcache), for guests too. Sent with `Pragma: no-cache` and
+        `X-Accel-Expires: 0`, which nginx honours even when it is set to ignore
+        `Cache-Control` (nginx consumes it, so clients rarely see it).
+      schema:
+        type: string
+        example: no-cache, no-store, must-revalidate, max-age=0, private
+    CartExpiresHeader:
+      description: |
+        The cart session's expiry, as an HTTP date. Caches don't keep the response
+        until then: `max-age=0` in `Cache-Control` overrides `Expires`, and nginx
+        gives `X-Accel-Expires: 0` priority over it.
+      schema:
+        type: string
+        example: Tue, 06 Oct 2026 10:14:43 GMT
+    SessionVaryHeader:
+      description: |
+        Request headers the response depends on. Lists the session headers
+        `Cart-Key`, `CoCart-API-Cart-Key` and `Authorization` (filterable with
+        `cocart_session_vary_headers`), so a cache that stores the response anyway
+        keeps one copy per cart. May arrive as several `Vary` lines (e.g. `Origin`
+        from CORS, `CF-IPCountry` from geolocation, `Accept-Encoding` when PHP
+        compresses the response), which mean one combined list.
+      schema:
+        type: string
+        example: Origin, Cart-Key, CoCart-API-Cart-Key, Authorization
+    CartExpiringHeader:
+      description: |
+        Only when `WP_DEBUG` is on. Unix timestamp after which the session is
+        extended on its next use (one day from now by default, filterable with
+        `cocart_cart_expiring`).
+      schema:
+        type: integer
+        example: 1791108883
+    CartExpirationHeader:
+      description: |
+        Only when `WP_DEBUG` is on. Unix timestamp when the cart session expires
+        (2 days for guests and 7 days for customers by default, set in the session
+        settings or with `cocart_cart_expiration`). Outside debugging, `Expires`
+        carries the same time.
+      schema:
+        type: integer
+        example: 1791195283
+    CartHashHeader:
+      description: |
+        Only when `WP_DEBUG` is on. Hash of the cart contents, for debugging; use
+        `ETag` to detect changes.
+      schema:
+        type: string
+        example: 838029ced1a28de909704ef32ca99e91
   securitySchemes:
     basicAuth:
       type: http
@@ -216,9 +285,6 @@ components:
     StoreInfo:
       type: object
       properties:
-        version:
-          type: string
-          description: CoCart version.
         title:
           type: string
           description: Store title.
@@ -239,11 +305,25 @@ components:
           description: Timezone string.
         store_address:
           type: object
-          description: Store address information.
+          description: The store's address.
+          additionalProperties:
+            type: string
         routes:
           type: object
           description: Available API routes.
           additionalProperties: true
+        versions:
+          type: object
+          description: Versions of the CoCart plugins installed (`core`, plus `plus` and other add-ons when active).
+          required:
+          - core
+          properties:
+            core:
+              type: string
+            plus:
+              type: string
+          additionalProperties:
+            type: string
     ErrorResponse:
       type: object
       description: Standard error response structure.

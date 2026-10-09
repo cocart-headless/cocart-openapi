@@ -80,6 +80,20 @@ paths:
         '200':
           description: Cart retrieved successfully.
           headers:
+            Cart-Key:
+              $ref: '#/components/headers/CartKeyHeader'
+            Cache-Control:
+              $ref: '#/components/headers/SessionCacheControlHeader'
+            Expires:
+              $ref: '#/components/headers/CartExpiresHeader'
+            Vary:
+              $ref: '#/components/headers/SessionVaryHeader'
+            Cart-Expiring:
+              $ref: '#/components/headers/CartExpiringHeader'
+            Cart-Expiration:
+              $ref: '#/components/headers/CartExpirationHeader'
+            Cart-Hash:
+              $ref: '#/components/headers/CartHashHeader'
             ETag:
               $ref: '#/components/headers/ETagHeader'
             CoCart-Cache:
@@ -198,8 +212,8 @@ paths:
                 - coupon: SUMMER20
                   label: Summer Sale 20% Off
                   discount_type: percent
-                  saving: $23.20
-                  saving_html: <strong>$23.20</strong>
+                  saving: '-2320'
+                  saving_html: '$23.20'
                 needs_payment: true
                 needs_shipping: true
                 shipping:
@@ -233,12 +247,9 @@ paths:
                       chosen_method: flat_rate:1
                       formatted_destination: Beverly Hills, CA 90210, US
                 fees:
-                - name: Gift Wrapping
-                  amount: 5.0
-                  taxable: true
-                  tax_class: standard
-                  total: 5.0
-                  tax: 0.5
+                  gift-wrapping:
+                    name: Gift Wrapping
+                    fee: "500"
                 taxes:
                 - key: total
                   name: Sales Tax
@@ -298,16 +309,25 @@ paths:
                 data:
                   status: 400
         '404':
-          description: Cart not found.
+          description: Cart not found. Also `cocart_invalid_cart` when the requested cart key has no cart session.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_cart_not_found
-                message: Cart not found.
-                data:
-                  status: 404
+              examples:
+                cocart_cart_not_found:
+                  value:
+                    code: cocart_cart_not_found
+                    message: Cart not found.
+                    data:
+                      status: 404
+                cocart_invalid_cart:
+                  summary: Cart key with no cart session
+                  value:
+                    code: cocart_invalid_cart
+                    message: The cart requested is invalid.
+                    data:
+                      status: 404
     post:
       tags:
       - cart
@@ -317,6 +337,21 @@ paths:
       responses:
         '200':
           description: Cart created successfully.
+          headers:
+            Cart-Key:
+              $ref: '#/components/headers/CartKeyHeader'
+            Cache-Control:
+              $ref: '#/components/headers/SessionCacheControlHeader'
+            Expires:
+              $ref: '#/components/headers/CartExpiresHeader'
+            Vary:
+              $ref: '#/components/headers/SessionVaryHeader'
+            Cart-Expiring:
+              $ref: '#/components/headers/CartExpiringHeader'
+            Cart-Expiration:
+              $ref: '#/components/headers/CartExpirationHeader'
+            Cart-Hash:
+              $ref: '#/components/headers/CartHashHeader'
           content:
             application/json:
               schema:
@@ -349,6 +384,8 @@ paths:
       summary: Add item to cart
       description: |
         Adds a single product item to the customer's cart.
+
+        A quantity above the maximum allowed (the purchase limit or the stock available) is reduced to the maximum, and the response says so with a `notice` notice, e.g. `The quantity of "Beanie" was reduced to 5, the most allowed in the cart.`
       parameters:
       - name: formatted
         in: query
@@ -400,6 +437,20 @@ paths:
         '200':
           description: Item added to cart successfully.
           headers:
+            Cart-Key:
+              $ref: '#/components/headers/CartKeyHeader'
+            Cache-Control:
+              $ref: '#/components/headers/SessionCacheControlHeader'
+            Expires:
+              $ref: '#/components/headers/CartExpiresHeader'
+            Vary:
+              $ref: '#/components/headers/SessionVaryHeader'
+            Cart-Expiring:
+              $ref: '#/components/headers/CartExpiringHeader'
+            Cart-Expiration:
+              $ref: '#/components/headers/CartExpirationHeader'
+            Cart-Hash:
+              $ref: '#/components/headers/CartHashHeader'
             ETag:
               $ref: '#/components/headers/ETagHeader'
             CoCart-Cache:
@@ -495,7 +546,7 @@ paths:
                       show_package_details: true
                       has_calculated_shipping: false
                       packages: []
-                    fees: []
+                    fees: {}
                     taxes: []
                     totals:
                       subtotal: '1800'
@@ -570,16 +621,25 @@ paths:
                 data:
                   status: 403
         '404':
-          description: Product not found.
+          description: Product not found. Also `cocart_invalid_cart` when the requested cart key has no cart session.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_product_not_found
-                message: Product not found.
-                data:
-                  status: 404
+              examples:
+                cocart_product_not_found:
+                  value:
+                    code: cocart_product_not_found
+                    message: Product not found.
+                    data:
+                      status: 404
+                cocart_invalid_cart:
+                  summary: Cart key with no cart session
+                  value:
+                    code: cocart_invalid_cart
+                    message: The cart requested is invalid.
+                    data:
+                      status: 404
   /cart/add-items:
     post:
       tags:
@@ -642,6 +702,20 @@ paths:
         '200':
           description: Items added to cart successfully.
           headers:
+            Cart-Key:
+              $ref: '#/components/headers/CartKeyHeader'
+            Cache-Control:
+              $ref: '#/components/headers/SessionCacheControlHeader'
+            Expires:
+              $ref: '#/components/headers/CartExpiresHeader'
+            Vary:
+              $ref: '#/components/headers/SessionVaryHeader'
+            Cart-Expiring:
+              $ref: '#/components/headers/CartExpiringHeader'
+            Cart-Expiration:
+              $ref: '#/components/headers/CartExpirationHeader'
+            Cart-Hash:
+              $ref: '#/components/headers/CartHashHeader'
             ETag:
               $ref: '#/components/headers/ETagHeader'
             CoCart-Cache:
@@ -678,6 +752,17 @@ paths:
                 message: One or more products cannot be added to the cart.
                 data:
                   status: 403
+        "404":
+          description: The requested cart key has no cart session (`cocart_invalid_cart`), for example because the cart expired. Send the request again without a cart key to start a new cart.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: cocart_invalid_cart
+                message: The cart requested is invalid.
+                data:
+                  status: 404
   /cart/item/{item_key}:
     get:
       tags:
@@ -706,6 +791,20 @@ paths:
         '200':
           description: Cart item retrieved successfully.
           headers:
+            Cart-Key:
+              $ref: '#/components/headers/CartKeyHeader'
+            Cache-Control:
+              $ref: '#/components/headers/SessionCacheControlHeader'
+            Expires:
+              $ref: '#/components/headers/CartExpiresHeader'
+            Vary:
+              $ref: '#/components/headers/SessionVaryHeader'
+            Cart-Expiring:
+              $ref: '#/components/headers/CartExpiringHeader'
+            Cart-Expiration:
+              $ref: '#/components/headers/CartExpirationHeader'
+            Cart-Hash:
+              $ref: '#/components/headers/CartHashHeader'
             ETag:
               $ref: '#/components/headers/ETagHeader'
             CoCart-Cache:
@@ -764,16 +863,216 @@ paths:
                 data:
                   status: 400
         '404':
-          description: Cart item not found.
+          description: "The item key isn't in the cart: `cocart_item_not_in_cart`, with the current cart in `data.cart`. Also `cocart_invalid_cart` when the requested cart key has no cart session."
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_item_not_found
-                message: Cart item not found.
-                data:
-                  status: 404
+                anyOf:
+                - $ref: "#/components/schemas/ItemNotInCartError"
+                - $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                cocart_item_not_in_cart:
+                  summary: Item key not in the cart
+                  value:
+                    code: cocart_item_not_in_cart
+                    message: Item specified does not exist in cart.
+                    data:
+                      status: 404
+                      cart:
+                        cart_hash: e629fa6598d732768f7c726b4b621285
+                        cart_key: cb7a23af96a3f23af3c28a8b4b8c6d5e
+                        currency:
+                          currency_code: USD
+                          currency_symbol: $
+                          currency_symbol_pos: left
+                          currency_minor_unit: 2
+                          currency_decimal_separator: .
+                          currency_thousand_separator: ","
+                          currency_prefix: $
+                          currency_suffix: ""
+                        customer:
+                          billing_address:
+                            billing_first_name: John
+                            billing_last_name: Doe
+                            billing_company: Acme Corporation
+                            billing_country: US
+                            billing_address_1: 123 Main Street
+                            billing_address_2: Suite 100
+                            billing_postcode: "90210"
+                            billing_city: Beverly Hills
+                            billing_state: CA
+                            billing_phone: +1-555-123-4567
+                            billing_email: john.doe@example.com
+                          shipping_address:
+                            shipping_first_name: John
+                            shipping_last_name: Doe
+                            shipping_company: Acme Corporation
+                            shipping_country: US
+                            shipping_address_1: 123 Main Street
+                            shipping_address_2: Suite 100
+                            shipping_postcode: "90210"
+                            shipping_city: Beverly Hills
+                            shipping_state: CA
+                        items:
+                          d6b3e8e5a1b0c6e4f2a3b1d8c5e6f9a2:
+                            item_key: d6b3e8e5a1b0c6e4f2a3b1d8c5e6f9a2
+                            id: 145
+                            name: Wireless Bluetooth Headphones
+                            title: Wireless Bluetooth Headphones
+                            price: "1800"
+                            regular_price: "2200"
+                            on_sale: true
+                            quantity:
+                              value: 2
+                              minimum: 1
+                              maximum: -1
+                              multiple_of: 1
+                              editable: true
+                            totals:
+                              subtotal: "3600"
+                              subtotal_tax: "360"
+                              total: "3600"
+                              tax: "360"
+                            slug: wireless-bluetooth-headphones
+                            meta:
+                              product_type: simple
+                              sku: WBH-001
+                              dimensions:
+                                length: ""
+                                width: ""
+                                height: ""
+                                unit: cm
+                              weight: "0.5"
+                              variation: {}
+                            backorders: 'no'
+                            cart_item_data: {}
+                            featured_image: https://example-store.com/wp-content/uploads/2024/03/headphones-blue.jpg
+                          f3a8b2c6d5e9f1a4b7c0d3e6f9a2b5c8:
+                            item_key: f3a8b2c6d5e9f1a4b7c0d3e6f9a2b5c8
+                            id: 289
+                            name: Premium Cotton T-Shirt - Large, Navy Blue
+                            title: Premium Cotton T-Shirt
+                            price: "8000"
+                            regular_price: "8000"
+                            on_sale: false
+                            quantity:
+                              value: 1
+                              minimum: 1
+                              maximum: 100
+                              multiple_of: 1
+                              editable: true
+                            totals:
+                              subtotal: "8000"
+                              subtotal_tax: "800"
+                              total: "8000"
+                              tax: "800"
+                            slug: premium-cotton-tshirt
+                            meta:
+                              product_type: variation
+                              sku: PCT-LG-NB
+                              dimensions:
+                                length: "25"
+                                width: "20"
+                                height: "2"
+                                unit: cm
+                              weight: "0.2"
+                              variation:
+                                attribute_pa_size: Large
+                                attribute_pa_color: Navy Blue
+                            backorders: 'no'
+                            cart_item_data: {}
+                            featured_image: https://example-store.com/wp-content/uploads/2024/03/tshirt-navy.jpg
+                        item_count: 3
+                        items_weight: 1.5
+                        coupons:
+                        - coupon: SUMMER20
+                          label: Summer Sale 20% Off
+                          discount_type: percent
+                          saving: "-2320"
+                          saving_html: $23.20
+                        needs_payment: true
+                        needs_shipping: true
+                        shipping:
+                          total_packages: 1
+                          show_package_details: true
+                          has_calculated_shipping: true
+                          packages:
+                            default:
+                              package_name: Shipping
+                              rates:
+                                flat_rate_1:
+                                  key: flat_rate:1
+                                  method_id: flat_rate
+                                  instance_id: 1
+                                  label: Flat Rate
+                                  cost: "10.00"
+                                  html: "Flat Rate: $10.00"
+                                  taxes: "1.00"
+                                  chosen_method: true
+                                free_shipping_2:
+                                  key: free_shipping:2
+                                  method_id: free_shipping
+                                  instance_id: 2
+                                  label: Free Shipping
+                                  cost: "0.00"
+                                  html: Free Shipping
+                                  taxes: "0.00"
+                                  chosen_method: false
+                              package_details: Shipped from Main Warehouse
+                              index: 0
+                              chosen_method: flat_rate:1
+                              formatted_destination: Beverly Hills, CA 90210, US
+                        fees:
+                          gift-wrapping:
+                            name: Gift Wrapping
+                            fee: "500"
+                        taxes:
+                        - key: total
+                          name: Sales Tax
+                          price: "1310"
+                        totals:
+                          subtotal: "11600"
+                          subtotal_tax: "1160"
+                          shipping_total: "1000"
+                          shipping_tax: "100"
+                          shipping_taxes:
+                          - 100
+                          discount_total: "2320"
+                          discount_tax: "0"
+                          cart_contents_total: "9280"
+                          cart_contents_tax: "1110"
+                          cart_contents_taxes:
+                          - 1110
+                          fee_total: "500"
+                          fee_tax: "50"
+                          fee_taxes:
+                          - 50
+                          total: "11940"
+                          total_tax: "1360"
+                        removed_items: []
+                        cross_sells:
+                        - id: 312
+                          product_name: Wireless Charging Pad
+                          product_title: Wireless Charging Pad
+                          price: "2999"
+                          regular_price: "3999"
+                          sale_price: "2999"
+                          product_image: https://example-store.com/wp-content/uploads/2024/03/charging-pad.jpg
+                        - id: 445
+                          product_name: Phone Case - Universal
+                          product_title: Phone Case - Universal
+                          price: "1599"
+                          regular_price: "1599"
+                          sale_price: ""
+                          product_image: https://example-store.com/wp-content/uploads/2024/03/phone-case.jpg
+                        extensions: {}
+                cocart_invalid_cart:
+                  summary: Cart key with no cart session
+                  value:
+                    code: cocart_invalid_cart
+                    message: The cart requested is invalid.
+                    data:
+                      status: 404
     post:
       tags:
       - cart-items
@@ -781,6 +1080,8 @@ paths:
       description: |
         Updates the quantity or other properties of a specific item in the customer's cart.
         By default returns the updated cart contents. Set return_status=true to get a status message with quantity info.
+
+        A quantity above the maximum allowed (the purchase limit or the stock available) is reduced to the maximum, and the response says so with a `notice` notice, e.g. `The quantity of "Beanie" was reduced to 5, the most allowed in the cart.`
       parameters:
       - name: item_key
         in: path
@@ -826,6 +1127,20 @@ paths:
         '200':
           description: Cart item updated successfully.
           headers:
+            Cart-Key:
+              $ref: '#/components/headers/CartKeyHeader'
+            Cache-Control:
+              $ref: '#/components/headers/SessionCacheControlHeader'
+            Expires:
+              $ref: '#/components/headers/CartExpiresHeader'
+            Vary:
+              $ref: '#/components/headers/SessionVaryHeader'
+            Cart-Expiring:
+              $ref: '#/components/headers/CartExpiringHeader'
+            Cart-Expiration:
+              $ref: '#/components/headers/CartExpirationHeader'
+            Cart-Hash:
+              $ref: '#/components/headers/CartHashHeader'
             ETag:
               $ref: '#/components/headers/ETagHeader'
             CoCart-Cache:
@@ -856,16 +1171,216 @@ paths:
                 data:
                   status: 400
         '404':
-          description: Cart item not found.
+          description: "The item key isn't in the cart: `cocart_item_not_in_cart`, with the current cart in `data.cart`. Also `cocart_invalid_cart` when the requested cart key has no cart session."
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_item_not_found
-                message: Cart item not found.
-                data:
-                  status: 404
+                anyOf:
+                - $ref: "#/components/schemas/ItemNotInCartError"
+                - $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                cocart_item_not_in_cart:
+                  summary: Item key not in the cart
+                  value:
+                    code: cocart_item_not_in_cart
+                    message: Item specified does not exist in cart.
+                    data:
+                      status: 404
+                      cart:
+                        cart_hash: e629fa6598d732768f7c726b4b621285
+                        cart_key: cb7a23af96a3f23af3c28a8b4b8c6d5e
+                        currency:
+                          currency_code: USD
+                          currency_symbol: $
+                          currency_symbol_pos: left
+                          currency_minor_unit: 2
+                          currency_decimal_separator: .
+                          currency_thousand_separator: ","
+                          currency_prefix: $
+                          currency_suffix: ""
+                        customer:
+                          billing_address:
+                            billing_first_name: John
+                            billing_last_name: Doe
+                            billing_company: Acme Corporation
+                            billing_country: US
+                            billing_address_1: 123 Main Street
+                            billing_address_2: Suite 100
+                            billing_postcode: "90210"
+                            billing_city: Beverly Hills
+                            billing_state: CA
+                            billing_phone: +1-555-123-4567
+                            billing_email: john.doe@example.com
+                          shipping_address:
+                            shipping_first_name: John
+                            shipping_last_name: Doe
+                            shipping_company: Acme Corporation
+                            shipping_country: US
+                            shipping_address_1: 123 Main Street
+                            shipping_address_2: Suite 100
+                            shipping_postcode: "90210"
+                            shipping_city: Beverly Hills
+                            shipping_state: CA
+                        items:
+                          d6b3e8e5a1b0c6e4f2a3b1d8c5e6f9a2:
+                            item_key: d6b3e8e5a1b0c6e4f2a3b1d8c5e6f9a2
+                            id: 145
+                            name: Wireless Bluetooth Headphones
+                            title: Wireless Bluetooth Headphones
+                            price: "1800"
+                            regular_price: "2200"
+                            on_sale: true
+                            quantity:
+                              value: 2
+                              minimum: 1
+                              maximum: -1
+                              multiple_of: 1
+                              editable: true
+                            totals:
+                              subtotal: "3600"
+                              subtotal_tax: "360"
+                              total: "3600"
+                              tax: "360"
+                            slug: wireless-bluetooth-headphones
+                            meta:
+                              product_type: simple
+                              sku: WBH-001
+                              dimensions:
+                                length: ""
+                                width: ""
+                                height: ""
+                                unit: cm
+                              weight: "0.5"
+                              variation: {}
+                            backorders: 'no'
+                            cart_item_data: {}
+                            featured_image: https://example-store.com/wp-content/uploads/2024/03/headphones-blue.jpg
+                          f3a8b2c6d5e9f1a4b7c0d3e6f9a2b5c8:
+                            item_key: f3a8b2c6d5e9f1a4b7c0d3e6f9a2b5c8
+                            id: 289
+                            name: Premium Cotton T-Shirt - Large, Navy Blue
+                            title: Premium Cotton T-Shirt
+                            price: "8000"
+                            regular_price: "8000"
+                            on_sale: false
+                            quantity:
+                              value: 1
+                              minimum: 1
+                              maximum: 100
+                              multiple_of: 1
+                              editable: true
+                            totals:
+                              subtotal: "8000"
+                              subtotal_tax: "800"
+                              total: "8000"
+                              tax: "800"
+                            slug: premium-cotton-tshirt
+                            meta:
+                              product_type: variation
+                              sku: PCT-LG-NB
+                              dimensions:
+                                length: "25"
+                                width: "20"
+                                height: "2"
+                                unit: cm
+                              weight: "0.2"
+                              variation:
+                                attribute_pa_size: Large
+                                attribute_pa_color: Navy Blue
+                            backorders: 'no'
+                            cart_item_data: {}
+                            featured_image: https://example-store.com/wp-content/uploads/2024/03/tshirt-navy.jpg
+                        item_count: 3
+                        items_weight: 1.5
+                        coupons:
+                        - coupon: SUMMER20
+                          label: Summer Sale 20% Off
+                          discount_type: percent
+                          saving: "-2320"
+                          saving_html: $23.20
+                        needs_payment: true
+                        needs_shipping: true
+                        shipping:
+                          total_packages: 1
+                          show_package_details: true
+                          has_calculated_shipping: true
+                          packages:
+                            default:
+                              package_name: Shipping
+                              rates:
+                                flat_rate_1:
+                                  key: flat_rate:1
+                                  method_id: flat_rate
+                                  instance_id: 1
+                                  label: Flat Rate
+                                  cost: "10.00"
+                                  html: "Flat Rate: $10.00"
+                                  taxes: "1.00"
+                                  chosen_method: true
+                                free_shipping_2:
+                                  key: free_shipping:2
+                                  method_id: free_shipping
+                                  instance_id: 2
+                                  label: Free Shipping
+                                  cost: "0.00"
+                                  html: Free Shipping
+                                  taxes: "0.00"
+                                  chosen_method: false
+                              package_details: Shipped from Main Warehouse
+                              index: 0
+                              chosen_method: flat_rate:1
+                              formatted_destination: Beverly Hills, CA 90210, US
+                        fees:
+                          gift-wrapping:
+                            name: Gift Wrapping
+                            fee: "500"
+                        taxes:
+                        - key: total
+                          name: Sales Tax
+                          price: "1310"
+                        totals:
+                          subtotal: "11600"
+                          subtotal_tax: "1160"
+                          shipping_total: "1000"
+                          shipping_tax: "100"
+                          shipping_taxes:
+                          - 100
+                          discount_total: "2320"
+                          discount_tax: "0"
+                          cart_contents_total: "9280"
+                          cart_contents_tax: "1110"
+                          cart_contents_taxes:
+                          - 1110
+                          fee_total: "500"
+                          fee_tax: "50"
+                          fee_taxes:
+                          - 50
+                          total: "11940"
+                          total_tax: "1360"
+                        removed_items: []
+                        cross_sells:
+                        - id: 312
+                          product_name: Wireless Charging Pad
+                          product_title: Wireless Charging Pad
+                          price: "2999"
+                          regular_price: "3999"
+                          sale_price: "2999"
+                          product_image: https://example-store.com/wp-content/uploads/2024/03/charging-pad.jpg
+                        - id: 445
+                          product_name: Phone Case - Universal
+                          product_title: Phone Case - Universal
+                          price: "1599"
+                          regular_price: "1599"
+                          sale_price: ""
+                          product_image: https://example-store.com/wp-content/uploads/2024/03/phone-case.jpg
+                        extensions: {}
+                cocart_invalid_cart:
+                  summary: Cart key with no cart session
+                  value:
+                    code: cocart_invalid_cart
+                    message: The cart requested is invalid.
+                    data:
+                      status: 404
     put:
       tags:
       - cart-items
@@ -873,6 +1388,8 @@ paths:
       description: |
         Restores a previously removed item back to the customer's cart.
         By default returns the updated cart contents. Set return_item=true to get just the restored item details.
+
+        A quantity above the maximum allowed (the purchase limit or the stock available) is reduced to the maximum, and the response says so with a `notice` notice, e.g. `The quantity of "Beanie" was reduced to 5, the most allowed in the cart.`
       parameters:
       - name: item_key
         in: path
@@ -900,6 +1417,20 @@ paths:
         '200':
           description: Cart item restored successfully.
           headers:
+            Cart-Key:
+              $ref: '#/components/headers/CartKeyHeader'
+            Cache-Control:
+              $ref: '#/components/headers/SessionCacheControlHeader'
+            Expires:
+              $ref: '#/components/headers/CartExpiresHeader'
+            Vary:
+              $ref: '#/components/headers/SessionVaryHeader'
+            Cart-Expiring:
+              $ref: '#/components/headers/CartExpiringHeader'
+            Cart-Expiration:
+              $ref: '#/components/headers/CartExpirationHeader'
+            Cart-Hash:
+              $ref: '#/components/headers/CartHashHeader'
             ETag:
               $ref: '#/components/headers/ETagHeader'
             CoCart-Cache:
@@ -933,16 +1464,25 @@ paths:
                 data:
                   status: 403
         '404':
-          description: Cart item not found.
+          description: Cart item not found. Also `cocart_invalid_cart` when the requested cart key has no cart session.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_item_not_found
-                message: Cart item not found in removed items.
-                data:
-                  status: 404
+              examples:
+                cocart_item_not_found:
+                  value:
+                    code: cocart_item_not_found
+                    message: Cart item not found in removed items.
+                    data:
+                      status: 404
+                cocart_invalid_cart:
+                  summary: Cart key with no cart session
+                  value:
+                    code: cocart_invalid_cart
+                    message: The cart requested is invalid.
+                    data:
+                      status: 404
     delete:
       tags:
       - cart-items
@@ -977,6 +1517,20 @@ paths:
         '200':
           description: Cart item removed successfully.
           headers:
+            Cart-Key:
+              $ref: '#/components/headers/CartKeyHeader'
+            Cache-Control:
+              $ref: '#/components/headers/SessionCacheControlHeader'
+            Expires:
+              $ref: '#/components/headers/CartExpiresHeader'
+            Vary:
+              $ref: '#/components/headers/SessionVaryHeader'
+            Cart-Expiring:
+              $ref: '#/components/headers/CartExpiringHeader'
+            Cart-Expiration:
+              $ref: '#/components/headers/CartExpirationHeader'
+            Cart-Hash:
+              $ref: '#/components/headers/CartHashHeader'
             ETag:
               $ref: '#/components/headers/ETagHeader'
             CoCart-Cache:
@@ -1000,16 +1554,216 @@ paths:
                 data:
                   status: 400
         '404':
-          description: Cart item not found.
+          description: "The item key isn't in the cart: `cocart_item_not_in_cart`, with the current cart in `data.cart`. Also `cocart_invalid_cart` when the requested cart key has no cart session."
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_item_not_found
-                message: Cart item not found.
-                data:
-                  status: 404
+                anyOf:
+                - $ref: "#/components/schemas/ItemNotInCartError"
+                - $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                cocart_item_not_in_cart:
+                  summary: Item key not in the cart
+                  value:
+                    code: cocart_item_not_in_cart
+                    message: Item does not exist in cart.
+                    data:
+                      status: 404
+                      cart:
+                        cart_hash: e629fa6598d732768f7c726b4b621285
+                        cart_key: cb7a23af96a3f23af3c28a8b4b8c6d5e
+                        currency:
+                          currency_code: USD
+                          currency_symbol: $
+                          currency_symbol_pos: left
+                          currency_minor_unit: 2
+                          currency_decimal_separator: .
+                          currency_thousand_separator: ","
+                          currency_prefix: $
+                          currency_suffix: ""
+                        customer:
+                          billing_address:
+                            billing_first_name: John
+                            billing_last_name: Doe
+                            billing_company: Acme Corporation
+                            billing_country: US
+                            billing_address_1: 123 Main Street
+                            billing_address_2: Suite 100
+                            billing_postcode: "90210"
+                            billing_city: Beverly Hills
+                            billing_state: CA
+                            billing_phone: +1-555-123-4567
+                            billing_email: john.doe@example.com
+                          shipping_address:
+                            shipping_first_name: John
+                            shipping_last_name: Doe
+                            shipping_company: Acme Corporation
+                            shipping_country: US
+                            shipping_address_1: 123 Main Street
+                            shipping_address_2: Suite 100
+                            shipping_postcode: "90210"
+                            shipping_city: Beverly Hills
+                            shipping_state: CA
+                        items:
+                          d6b3e8e5a1b0c6e4f2a3b1d8c5e6f9a2:
+                            item_key: d6b3e8e5a1b0c6e4f2a3b1d8c5e6f9a2
+                            id: 145
+                            name: Wireless Bluetooth Headphones
+                            title: Wireless Bluetooth Headphones
+                            price: "1800"
+                            regular_price: "2200"
+                            on_sale: true
+                            quantity:
+                              value: 2
+                              minimum: 1
+                              maximum: -1
+                              multiple_of: 1
+                              editable: true
+                            totals:
+                              subtotal: "3600"
+                              subtotal_tax: "360"
+                              total: "3600"
+                              tax: "360"
+                            slug: wireless-bluetooth-headphones
+                            meta:
+                              product_type: simple
+                              sku: WBH-001
+                              dimensions:
+                                length: ""
+                                width: ""
+                                height: ""
+                                unit: cm
+                              weight: "0.5"
+                              variation: {}
+                            backorders: 'no'
+                            cart_item_data: {}
+                            featured_image: https://example-store.com/wp-content/uploads/2024/03/headphones-blue.jpg
+                          f3a8b2c6d5e9f1a4b7c0d3e6f9a2b5c8:
+                            item_key: f3a8b2c6d5e9f1a4b7c0d3e6f9a2b5c8
+                            id: 289
+                            name: Premium Cotton T-Shirt - Large, Navy Blue
+                            title: Premium Cotton T-Shirt
+                            price: "8000"
+                            regular_price: "8000"
+                            on_sale: false
+                            quantity:
+                              value: 1
+                              minimum: 1
+                              maximum: 100
+                              multiple_of: 1
+                              editable: true
+                            totals:
+                              subtotal: "8000"
+                              subtotal_tax: "800"
+                              total: "8000"
+                              tax: "800"
+                            slug: premium-cotton-tshirt
+                            meta:
+                              product_type: variation
+                              sku: PCT-LG-NB
+                              dimensions:
+                                length: "25"
+                                width: "20"
+                                height: "2"
+                                unit: cm
+                              weight: "0.2"
+                              variation:
+                                attribute_pa_size: Large
+                                attribute_pa_color: Navy Blue
+                            backorders: 'no'
+                            cart_item_data: {}
+                            featured_image: https://example-store.com/wp-content/uploads/2024/03/tshirt-navy.jpg
+                        item_count: 3
+                        items_weight: 1.5
+                        coupons:
+                        - coupon: SUMMER20
+                          label: Summer Sale 20% Off
+                          discount_type: percent
+                          saving: "-2320"
+                          saving_html: $23.20
+                        needs_payment: true
+                        needs_shipping: true
+                        shipping:
+                          total_packages: 1
+                          show_package_details: true
+                          has_calculated_shipping: true
+                          packages:
+                            default:
+                              package_name: Shipping
+                              rates:
+                                flat_rate_1:
+                                  key: flat_rate:1
+                                  method_id: flat_rate
+                                  instance_id: 1
+                                  label: Flat Rate
+                                  cost: "10.00"
+                                  html: "Flat Rate: $10.00"
+                                  taxes: "1.00"
+                                  chosen_method: true
+                                free_shipping_2:
+                                  key: free_shipping:2
+                                  method_id: free_shipping
+                                  instance_id: 2
+                                  label: Free Shipping
+                                  cost: "0.00"
+                                  html: Free Shipping
+                                  taxes: "0.00"
+                                  chosen_method: false
+                              package_details: Shipped from Main Warehouse
+                              index: 0
+                              chosen_method: flat_rate:1
+                              formatted_destination: Beverly Hills, CA 90210, US
+                        fees:
+                          gift-wrapping:
+                            name: Gift Wrapping
+                            fee: "500"
+                        taxes:
+                        - key: total
+                          name: Sales Tax
+                          price: "1310"
+                        totals:
+                          subtotal: "11600"
+                          subtotal_tax: "1160"
+                          shipping_total: "1000"
+                          shipping_tax: "100"
+                          shipping_taxes:
+                          - 100
+                          discount_total: "2320"
+                          discount_tax: "0"
+                          cart_contents_total: "9280"
+                          cart_contents_tax: "1110"
+                          cart_contents_taxes:
+                          - 1110
+                          fee_total: "500"
+                          fee_tax: "50"
+                          fee_taxes:
+                          - 50
+                          total: "11940"
+                          total_tax: "1360"
+                        removed_items: []
+                        cross_sells:
+                        - id: 312
+                          product_name: Wireless Charging Pad
+                          product_title: Wireless Charging Pad
+                          price: "2999"
+                          regular_price: "3999"
+                          sale_price: "2999"
+                          product_image: https://example-store.com/wp-content/uploads/2024/03/charging-pad.jpg
+                        - id: 445
+                          product_name: Phone Case - Universal
+                          product_title: Phone Case - Universal
+                          price: "1599"
+                          regular_price: "1599"
+                          sale_price: ""
+                          product_image: https://example-store.com/wp-content/uploads/2024/03/phone-case.jpg
+                        extensions: {}
+                cocart_invalid_cart:
+                  summary: Cart key with no cart session
+                  value:
+                    code: cocart_invalid_cart
+                    message: The cart requested is invalid.
+                    data:
+                      status: 404
   /cart/items:
     get:
       tags:
@@ -1044,6 +1798,20 @@ paths:
         '200':
           description: Cart items retrieved successfully.
           headers:
+            Cart-Key:
+              $ref: '#/components/headers/CartKeyHeader'
+            Cache-Control:
+              $ref: '#/components/headers/SessionCacheControlHeader'
+            Expires:
+              $ref: '#/components/headers/CartExpiresHeader'
+            Vary:
+              $ref: '#/components/headers/SessionVaryHeader'
+            Cart-Expiring:
+              $ref: '#/components/headers/CartExpiringHeader'
+            Cart-Expiration:
+              $ref: '#/components/headers/CartExpirationHeader'
+            Cart-Hash:
+              $ref: '#/components/headers/CartHashHeader'
             ETag:
               $ref: '#/components/headers/ETagHeader'
             CoCart-Cache:
@@ -1138,16 +1906,25 @@ paths:
                 data:
                   status: 400
         '404':
-          description: No items found in cart.
+          description: No items found in cart. Also `cocart_invalid_cart` when the requested cart key has no cart session.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_no_items
-                message: No items found in cart.
-                data:
-                  status: 404
+              examples:
+                cocart_no_items:
+                  value:
+                    code: cocart_no_items
+                    message: No items found in cart.
+                    data:
+                      status: 404
+                cocart_invalid_cart:
+                  summary: Cart key with no cart session
+                  value:
+                    code: cocart_invalid_cart
+                    message: The cart requested is invalid.
+                    data:
+                      status: 404
   /cart/items/count:
     get:
       tags:
@@ -1177,6 +1954,20 @@ paths:
         '200':
           description: Cart item count retrieved successfully.
           headers:
+            Cart-Key:
+              $ref: '#/components/headers/CartKeyHeader'
+            Cache-Control:
+              $ref: '#/components/headers/SessionCacheControlHeader'
+            Expires:
+              $ref: '#/components/headers/CartExpiresHeader'
+            Vary:
+              $ref: '#/components/headers/SessionVaryHeader'
+            Cart-Expiring:
+              $ref: '#/components/headers/CartExpiringHeader'
+            Cart-Expiration:
+              $ref: '#/components/headers/CartExpirationHeader'
+            Cart-Hash:
+              $ref: '#/components/headers/CartHashHeader'
             ETag:
               $ref: '#/components/headers/ETagHeader'
             CoCart-Cache:
@@ -1205,6 +1996,17 @@ paths:
                 message: Invalid return format parameter.
                 data:
                   status: 400
+        "404":
+          description: The requested cart key has no cart session (`cocart_invalid_cart`), for example because the cart expired. Send the request again without a cart key to start a new cart.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: cocart_invalid_cart
+                message: The cart requested is invalid.
+                data:
+                  status: 404
   /cart/clear:
     post:
       tags:
@@ -1236,6 +2038,20 @@ paths:
         '200':
           description: Cart cleared successfully.
           headers:
+            Cart-Key:
+              $ref: '#/components/headers/CartKeyHeader'
+            Cache-Control:
+              $ref: '#/components/headers/SessionCacheControlHeader'
+            Expires:
+              $ref: '#/components/headers/CartExpiresHeader'
+            Vary:
+              $ref: '#/components/headers/SessionVaryHeader'
+            Cart-Expiring:
+              $ref: '#/components/headers/CartExpiringHeader'
+            Cart-Expiration:
+              $ref: '#/components/headers/CartExpirationHeader'
+            Cart-Hash:
+              $ref: '#/components/headers/CartHashHeader'
             ETag:
               $ref: '#/components/headers/ETagHeader'
             CoCart-Cache:
@@ -1266,6 +2082,17 @@ paths:
                 message: Clearing the cart failed.
                 data:
                   status: 406
+        "404":
+          description: The requested cart key has no cart session (`cocart_invalid_cart`), for example because the cart expired. Send the request again without a cart key to start a new cart.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: cocart_invalid_cart
+                message: The cart requested is invalid.
+                data:
+                  status: 404
   /cart/update:
     post:
       tags:
@@ -1388,6 +2215,20 @@ paths:
         '200':
           description: Cart updated successfully.
           headers:
+            Cart-Key:
+              $ref: '#/components/headers/CartKeyHeader'
+            Cache-Control:
+              $ref: '#/components/headers/SessionCacheControlHeader'
+            Expires:
+              $ref: '#/components/headers/CartExpiresHeader'
+            Vary:
+              $ref: '#/components/headers/SessionVaryHeader'
+            Cart-Expiring:
+              $ref: '#/components/headers/CartExpiringHeader'
+            Cart-Expiration:
+              $ref: '#/components/headers/CartExpirationHeader'
+            Cart-Hash:
+              $ref: '#/components/headers/CartHashHeader'
             ETag:
               $ref: '#/components/headers/ETagHeader'
             CoCart-Cache:
@@ -1407,6 +2248,17 @@ paths:
                 message: Invalid parameter provided.
                 data:
                   status: 400
+        "404":
+          description: The requested cart key has no cart session (`cocart_invalid_cart`), for example because the cart expired. Send the request again without a cart key to start a new cart.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: cocart_invalid_cart
+                message: The cart requested is invalid.
+                data:
+                  status: 404
   /cart/totals:
     get:
       tags:
@@ -1417,14 +2269,14 @@ paths:
       parameters:
       - name: html
         in: query
-        description: Returns the totals pre-formatted as HTML strings (includes currency symbol).
+        description: Returns the totals formatted (e.g. `"$18.00"`). Same as `formatted`.
         schema:
           type: boolean
           default: false
         required: false
       - name: formatted
         in: query
-        description: Returns price values as a formatted string (e.g. "$18.00") when true. Defaults to false, returning raw numeric values (e.g. 1800).
+        description: Returns the totals formatted (e.g. `"$18.00"`) when true. Defaults to false, returning minor-unit strings (e.g. `"1800"`).
         schema:
           type: boolean
           default: false
@@ -1435,6 +2287,20 @@ paths:
         '200':
           description: Cart totals retrieved successfully.
           headers:
+            Cart-Key:
+              $ref: '#/components/headers/CartKeyHeader'
+            Cache-Control:
+              $ref: '#/components/headers/SessionCacheControlHeader'
+            Expires:
+              $ref: '#/components/headers/CartExpiresHeader'
+            Vary:
+              $ref: '#/components/headers/SessionVaryHeader'
+            Cart-Expiring:
+              $ref: '#/components/headers/CartExpiringHeader'
+            Cart-Expiration:
+              $ref: '#/components/headers/CartExpirationHeader'
+            Cart-Hash:
+              $ref: '#/components/headers/CartHashHeader'
             ETag:
               $ref: '#/components/headers/ETagHeader'
             CoCart-Cache:
@@ -1449,17 +2315,17 @@ paths:
                 shipping_total: '1000'
                 shipping_tax: '100'
                 shipping_taxes:
-                - 100
+                  "1": "100"
                 discount_total: '2320'
                 discount_tax: '0'
                 cart_contents_total: '9280'
                 cart_contents_tax: '1110'
                 cart_contents_taxes:
-                - 1110
+                  "1": "1110"
                 fee_total: '500'
                 fee_tax: '50'
                 fee_taxes:
-                - 50
+                  "1": "50"
                 total: '11940'
                 total_tax: '1360'
         '304':
@@ -1480,6 +2346,17 @@ paths:
                 message: Invalid parameter provided.
                 data:
                   status: 400
+        "404":
+          description: The requested cart key has no cart session (`cocart_invalid_cart`), for example because the cart expired. Send the request again without a cart key to start a new cart.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: cocart_invalid_cart
+                message: The cart requested is invalid.
+                data:
+                  status: 404
   /cart/calculate:
     post:
       tags:
@@ -1511,6 +2388,20 @@ paths:
         '200':
           description: Cart totals calculated successfully.
           headers:
+            Cart-Key:
+              $ref: '#/components/headers/CartKeyHeader'
+            Cache-Control:
+              $ref: '#/components/headers/SessionCacheControlHeader'
+            Expires:
+              $ref: '#/components/headers/CartExpiresHeader'
+            Vary:
+              $ref: '#/components/headers/SessionVaryHeader'
+            Cart-Expiring:
+              $ref: '#/components/headers/CartExpiringHeader'
+            Cart-Expiration:
+              $ref: '#/components/headers/CartExpirationHeader'
+            Cart-Hash:
+              $ref: '#/components/headers/CartHashHeader'
             ETag:
               $ref: '#/components/headers/ETagHeader'
             CoCart-Cache:
@@ -1534,8 +2425,78 @@ paths:
                 message: Invalid parameter provided.
                 data:
                   status: 400
+        "404":
+          description: The requested cart key has no cart session (`cocart_invalid_cart`), for example because the cart expired. Send the request again without a cart key to start a new cart.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: cocart_invalid_cart
+                message: The cart requested is invalid.
+                data:
+                  status: 404
 components:
   headers:
+    CartKeyHeader:
+      description: |
+        The cart key for this session. Send it back in the `Cart-Key` request
+        header (or the `cart_key` query parameter) to keep using the same cart.
+      schema:
+        type: string
+        example: t_d8f5452294c521ed95f41f90b8768d
+    SessionCacheControlHeader:
+      description: |
+        Per-session responses are kept out of shared caches (CDNs, a host's nginx
+        microcache), for guests too. Sent with `Pragma: no-cache` and
+        `X-Accel-Expires: 0`, which nginx honours even when it is set to ignore
+        `Cache-Control` (nginx consumes it, so clients rarely see it).
+      schema:
+        type: string
+        example: no-cache, no-store, must-revalidate, max-age=0, private
+    CartExpiresHeader:
+      description: |
+        The cart session's expiry, as an HTTP date. Caches don't keep the response
+        until then: `max-age=0` in `Cache-Control` overrides `Expires`, and nginx
+        gives `X-Accel-Expires: 0` priority over it.
+      schema:
+        type: string
+        example: Tue, 06 Oct 2026 10:14:43 GMT
+    SessionVaryHeader:
+      description: |
+        Request headers the response depends on. Lists the session headers
+        `Cart-Key`, `CoCart-API-Cart-Key` and `Authorization` (filterable with
+        `cocart_session_vary_headers`), so a cache that stores the response anyway
+        keeps one copy per cart. May arrive as several `Vary` lines (e.g. `Origin`
+        from CORS, `CF-IPCountry` from geolocation, `Accept-Encoding` when PHP
+        compresses the response), which mean one combined list.
+      schema:
+        type: string
+        example: Origin, Cart-Key, CoCart-API-Cart-Key, Authorization
+    CartExpiringHeader:
+      description: |
+        Only when `WP_DEBUG` is on. Unix timestamp after which the session is
+        extended on its next use (one day from now by default, filterable with
+        `cocart_cart_expiring`).
+      schema:
+        type: integer
+        example: 1791108883
+    CartExpirationHeader:
+      description: |
+        Only when `WP_DEBUG` is on. Unix timestamp when the cart session expires
+        (2 days for guests and 7 days for customers by default, set in the session
+        settings or with `cocart_cart_expiration`). Outside debugging, `Expires`
+        carries the same time.
+      schema:
+        type: integer
+        example: 1791195283
+    CartHashHeader:
+      description: |
+        Only when `WP_DEBUG` is on. Hash of the cart contents, for debugging; use
+        `ETag` to detect changes.
+      schema:
+        type: string
+        example: 838029ced1a28de909704ef32ca99e91
     ETagHeader:
       description: |
         Weak ETag cache validation token. Format: W/"<md5hash>". Use in If-None-Match on subsequent requests for conditional GET.
@@ -1608,16 +2569,18 @@ components:
         customer:
           $ref: '#/components/schemas/Customer'
         items:
-          type: object
-          description: Cart items indexed by item key.
-          additionalProperties:
-            $ref: '#/components/schemas/CartItem'
+          type: array
+          description: Items in the cart. (`GET /cart/items` returns them keyed by item key instead.)
+          items:
+            $ref: "#/components/schemas/CartItem"
         item_count:
           type: integer
           description: Total number of items in cart.
         items_weight:
-          type: number
-          description: Total weight of all items.
+          description: Total weight of all items, usually as a numeric string.
+          oneOf:
+          - type: string
+          - type: number
         coupons:
           type: array
           description: Applied coupons.
@@ -1632,10 +2595,10 @@ components:
         shipping:
           $ref: '#/components/schemas/Shipping'
         fees:
-          type: array
-          description: Cart fees.
-          items:
-            $ref: '#/components/schemas/CartFee'
+          description: Fees added to the cart, keyed by fee ID. `{}` when there are none.
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/CartFee"
         taxes:
           type: array
           description: Cart taxes.
@@ -1654,12 +2617,19 @@ components:
           items:
             $ref: '#/components/schemas/CrossSellItem'
         notices:
+          description: Notices by type (`success`, `error`, `info`). `{}` when there are none.
           type: object
-          description: Cart notices and messages.
-          additionalProperties: true
+          additionalProperties:
+            type: array
+            items:
+              type: string
         extensions:
+          description: Data added by extensions (`cocart_cart_extensions`). `{}` when there is none.
           type: object
-          description: Additional data added by third-party extensions via the `cocart_cart_extensions` filter. Only present when at least one extension hooks this filter.
+          additionalProperties: true
+        meta:
+          description: Extra cart data. `{}` when there is none.
+          type: object
           additionalProperties: true
     CartItem:
       type: object
@@ -1706,20 +2676,16 @@ components:
               description: Whether the quantity of the item is editable.
         totals:
           type: object
-          description: Item totals. All values are raw numeric strings (e.g. "3600") by default; formatted strings (e.g. "$36.00") when `formatted=true`.
+          description: Line totals in the currency's minor units, as strings (formatted strings when `formatted` is true).
           properties:
             subtotal:
               type: string
-              description: Line subtotal (before discounts).
             subtotal_tax:
               type: string
-              description: Line subtotal tax.
             total:
               type: string
-              description: Line total (after discounts).
             tax:
               type: string
-              description: Line total tax.
         slug:
           type: string
           description: Product slug.
@@ -1762,20 +2728,30 @@ components:
                 items:
                   type: string
           additionalProperties: true
+          required:
+          - product_type
+          - sku
+          - dimensions
+          - weight
         backorders:
           type: string
           description: Backorder status.
         cart_item_data:
+          description: Custom data stored with the item. `{}` when there is none.
           type: object
-          description: Custom cart item data.
           additionalProperties: true
         featured_image:
           type: string
           description: Product featured image URL.
         extensions:
+          description: Data added by extensions. `{}` when there is none.
           type: object
-          description: Additional data added by third-party extensions via the `cocart_cart_item_extensions` filter. Empty object when no extensions hook this filter.
           additionalProperties: true
+        variation:
+          description: "Attribute label → chosen value for a variation (e.g. `Color: Blue`). `{}` for other items."
+          type: object
+          additionalProperties:
+            type: string
     Currency:
       type: object
       properties:
@@ -1856,6 +2832,8 @@ components:
           type: string
         shipping_state:
           type: string
+        shipping_phone:
+          type: string
     Shipping:
       type: object
       properties:
@@ -1909,12 +2887,18 @@ components:
           type: string
         cost:
           type: string
+          description: The rate cost. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`.
         html:
           type: string
         taxes:
           type: string
+          description: The rate tax cost, all of its taxes added together. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`.
         chosen_method:
           type: boolean
+        meta_data:
+          description: Rate meta data, e.g. `items` (the items it covers).
+          type: object
+          additionalProperties: true
     CartTotals:
       type: object
       description: All monetary values are raw numeric strings (e.g. "1800") by default. Pass `formatted=true` to receive formatted strings (e.g. "$18.00").
@@ -1967,21 +2951,27 @@ components:
         total_tax:
           type: string
           description: Total tax.
+      required:
+      - subtotal
+      - subtotal_tax
+      - fee_total
+      - fee_tax
+      - discount_total
+      - discount_tax
+      - shipping_total
+      - shipping_tax
+      - total
+      - total_tax
     CartFee:
       type: object
+      description: A fee added to the cart.
       properties:
         name:
           type: string
-        amount:
-          type: number
-        taxable:
-          type: boolean
-        tax_class:
+          description: Fee name.
+        fee:
           type: string
-        total:
-          type: number
-        tax:
-          type: number
+          description: Fee amount, including tax when the store displays prices including tax. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`.
     CartTax:
       type: object
       description: |
@@ -2009,13 +2999,13 @@ components:
           description: Human-readable coupon label.
         discount_type:
           type: string
-          description: Type of discount applied (e.g. percent, fixed_cart, fixed_product).
+          description: Type of discount (e.g. `percent`, `fixed_cart`, `fixed_product`).
         saving:
           type: string
-          description: Amount saved by this coupon, formatted without HTML.
+          description: Amount saved by this coupon, as a negative amount (e.g. `-180`, in the currency's minor units).
         saving_html:
           type: string
-          description: Amount saved by this coupon, formatted as HTML.
+          description: Amount saved by this coupon, formatted for display without a sign (e.g. `$1.80`). `saving` carries the negative sign.
     RemovedItem:
       type: object
       properties:
@@ -2048,8 +3038,7 @@ components:
         product_image:
           type: string
     TotalsResponse:
-      allOf:
-      - $ref: '#/components/schemas/CartTotals'
+      $ref: "#/components/schemas/CartTotalsBreakdown"
     ErrorResponse:
       type: object
       description: Standard error response structure.
@@ -2081,3 +3070,71 @@ components:
               type: string
               description: The invalid value that was submitted. Present alongside `field` on validation errors.
           additionalProperties: true
+    CartTotalsBreakdown:
+      type: object
+      description: Cart totals as returned by `GET /cart/totals`, the full breakdown WooCommerce calculates.
+      properties:
+        subtotal:
+          type: string
+          description: Items subtotal. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`.
+        subtotal_tax:
+          type: string
+          description: Items subtotal tax. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`.
+        shipping_total:
+          type: string
+          description: Shipping total. `0` until shipping is calculated. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`.
+        shipping_tax:
+          type: string
+          description: Shipping tax. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`.
+        shipping_taxes:
+          description: Shipping taxes, keyed by tax rate ID. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`. `{}` when there are none.
+          type: object
+          additionalProperties:
+            type: string
+        discount_total:
+          type: string
+          description: Discount total. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`.
+        discount_tax:
+          type: string
+          description: Discount tax. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`.
+        cart_contents_total:
+          type: string
+          description: Items total after discounts. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`.
+        cart_contents_tax:
+          type: string
+          description: Items tax after discounts. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`.
+        cart_contents_taxes:
+          description: Items taxes, keyed by tax rate ID. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`. `{}` when there are none.
+          type: object
+          additionalProperties:
+            type: string
+        fee_total:
+          type: string
+          description: Fees total. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`.
+        fee_tax:
+          type: string
+          description: Fees tax. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`.
+        fee_taxes:
+          description: Fee taxes, keyed by tax rate ID. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`. `{}` when there are none.
+          type: object
+          additionalProperties:
+            type: string
+        total:
+          type: string
+          description: Cart total. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`.
+        total_tax:
+          type: string
+          description: Total tax. In minor units (e.g. `"1800"` for 18.00), or formatted (e.g. `"$18.00"`) when requested with `formatted`.
+    ItemNotInCartError:
+      description: The item key isn't in the cart (`cocart_item_not_in_cart`). `data.cart` is the cart as it is now, so the client can update without another request.
+      allOf:
+      - $ref: "#/components/schemas/ErrorResponse"
+      - type: object
+        properties:
+          data:
+            type: object
+            properties:
+              status:
+                type: integer
+              cart:
+                $ref: "#/components/schemas/CartV2"
