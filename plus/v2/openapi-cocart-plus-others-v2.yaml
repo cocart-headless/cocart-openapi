@@ -7,6 +7,11 @@ info:
     endpoint and a public order withdrawal request endpoint.
 
     Requires CoCart Starter v5.0+ to be installed and active.
+
+    Order withdrawal responses belong to one order, so they are kept out of shared caches (CDNs, a host's nginx
+    microcache): `Cache-Control: no-cache, no-store, must-revalidate, max-age=0,
+    private`, `Pragma: no-cache`, `X-Accel-Expires: 0` (consumed by nginx) and
+    `Vary: Cart-Key, CoCart-API-Cart-Key, Authorization`.
   termsOfService: https://cocartapi.com/terms-of-conditions-polar/
   contact:
     email: support@cocartapi.com
@@ -33,6 +38,8 @@ tags:
   description: Operations for registering customers
 - name: orders
   description: Operations for submitting order withdrawal requests
+- name: batch
+  description: Several requests in one.
 paths:
   /register:
     post:
@@ -363,6 +370,140 @@ paths:
                 message: We could not submit your withdrawal request. Please try again or contact us if the problem continues.
                 data:
                   status: 500
+  /batch:
+    servers:
+    - url: "{protocol}://{host}/wp-json/cocart"
+      description: The batch route is outside the versioned namespace.
+      variables:
+        protocol:
+          enum:
+          - http
+          - https
+          default: https
+        host:
+          default: example.com
+    post:
+      tags:
+      - batch
+      summary: Run several requests in one
+      description: |
+        Runs up to 25 CoCart requests (filterable up to 50 with `cocart_get_max_batch_size`) in one HTTP request.
+
+        When every request is a cart route (`/cocart/v2/cart…`), the response is **one cart**: the cart returned by the last request that succeeded, with the notices of every request merged into its `notices`. A request that failed is reported as an `error` notice instead, so the client reads one up-to-date cart. A `cart_key` sent with the batch applies to every request in it.
+
+        If every cart request fails, or the batch includes other routes, or a request fails schema validation with `validation: require-all-validate`, the response is WordPress's standard batch envelope: one entry per request with its own `status`, `headers` and `body` (207 when the statuses differ). `require-all-validate` checks request schemas only: errors raised while a request runs don't stop the others.
+      parameters:
+      - name: cart_key
+        in: query
+        required: false
+        description: Cart key applied to every cart request in the batch.
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - requests
+              properties:
+                validation:
+                  type: string
+                  enum:
+                  - normal
+                  - require-all-validate
+                  default: normal
+                requests:
+                  type: array
+                  maxItems: 25
+                  items:
+                    type: object
+                    required:
+                    - path
+                    properties:
+                      method:
+                        type: string
+                        enum:
+                        - GET
+                        - POST
+                        - PUT
+                        - PATCH
+                        - DELETE
+                        default: POST
+                      path:
+                        type: string
+                        description: Route with a leading slash, e.g. `/cocart/v2/cart/add-item`. API v1 routes are refused.
+                      body:
+                        type: object
+                        additionalProperties: true
+                      headers:
+                        type: object
+                        additionalProperties:
+                          oneOf:
+                          - type: string
+                          - type: array
+                            items:
+                              type: string
+            example:
+              requests:
+              - method: POST
+                path: /cocart/v2/cart/add-item
+                body:
+                  id: "154"
+                  quantity: "1"
+              - method: POST
+                path: /cocart/v2/cart/apply-coupon
+                body:
+                  code: save10
+      responses:
+        "200":
+          description: "Every request was a cart route and at least one succeeded: the cart after the batch, with failed requests as `error` notices."
+          content:
+            application/json:
+              schema:
+                type: object
+                description: A cart response, as `GET /cocart/v2/cart` returns it.
+                additionalProperties: true
+              example:
+                cart_key: t_d8f5452294c521ed95f41f90b8768d
+                item_count: 1
+                items: []
+                notices:
+                  error:
+                    "1": Coupon "save1o" does not exist!
+        "207":
+          description: "The standard batch envelope: one result per request."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  failed:
+                    type: string
+                    description: "`validation` when a request failed schema validation under `require-all-validate`; nothing ran."
+                  responses:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        status:
+                          type: integer
+                        headers:
+                          type: object
+                          additionalProperties: true
+                        body: {}
+        "400":
+          description: "Invalid batch: more requests than allowed, or an API v1 path (`cocart_rest_invalid_path`)."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: cocart_rest_invalid_path
+                message: Invalid path provided.
+                data:
+                  status: 400
 components:
   securitySchemes:
     basicAuth:
