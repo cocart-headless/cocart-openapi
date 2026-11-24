@@ -4,7 +4,8 @@ info:
   version: 2.0.0
   description: |
     CoCart Plus extends the CoCart REST API v2 with a customer registration
-    endpoint and a public order withdrawal request endpoint.
+    endpoint, a public order withdrawal request endpoint and batch requests
+    (several cart routes in one request).
 
     Requires CoCart Starter v5.0+ to be installed and active.
 
@@ -45,169 +46,158 @@ paths:
     post:
       tags:
       - customers
-      summary: Register customer
-      description: |
-        Registers a new customer account. A valid email address is required.
-
-        When the WooCommerce setting "generate username from email" is enabled, the
-        username may be omitted and is generated automatically. When the WooCommerce
-        setting "generate password" is enabled, the password may be omitted and a
-        generated password is emailed to the customer.
-
-        A blocklist of reserved usernames (admin, root, support, etc.) cannot be
-        registered (filterable via the `cocart_reserved_usernames` filter).
-
-        Passwords provided by the customer must be at least 8 characters
-        (filterable via `cocart_minimum_password_length`), must not match the
-        username or email address, must not be a common weak password
-        (filterable via `cocart_common_weak_passwords`), and must mix at
-        least three of: lowercase, uppercase, digit, symbol. This check is
-        skipped for a generated password.
-
-        The username/password fields are named `requested_username` /
-        `requested_password` rather than `username`/`password` deliberately:
-        CoCart Starter's authentication layer treats any request containing
-        non-empty `username`/`password` fields as a Basic Auth attempt, which
-        would collide with (and reject) this endpoint's own registration fields.
+      summary: Register a customer
+      description: Creates a customer account and returns `201` with the customer, as `GET /my-account` gives it, with `account_created` in `result` and logging in as the action to take next. An email or username already used is a `409`.
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
               type: object
               properties:
                 email:
-                  description: Customers email address. Required and must not already be registered.
+                  description: Customers email address.
                   type: string
-                  format: email
                 requested_username:
-                  description: Customers requested username. Optional when WooCommerce is set to generate usernames from the email address.
+                  description: Customers requested username.
                   type: string
                 requested_password:
-                  description: Customers requested password. Optional when WooCommerce is set to generate passwords automatically.
+                  description: Customers requested password. Kept exactly as sent, as WooCommerce keeps passwords.
                   type: string
-              required:
-              - email
-            example:
-              email: jane.doe@example.com
-              requested_username: janedoe
-              requested_password: hunter2-Str0ng!
+                formatted:
+                  description: True if you want to return the price values formatted.
+                  default: false
+                  type: boolean
+                meta_keys:
+                  description: Only these keys in each `meta`, e.g. meta_keys=gift_message,_configuration. Narrows the keys the store allows; it can never add one. Default every allowed key.
+                  type: array
+                  items:
+                    type: string
       responses:
-        '200':
-          description: Customer registered successfully.
+        '201':
+          description: The account was created.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RegisteredCustomer'
-              examples:
-                password_provided:
-                  summary: Password provided
-                  value:
-                    user_id: 43
-                    username: janedoe
-                    message: Your account was created successfully. Your login details have been sent to your email address.
-                password_generated:
-                  summary: Password generated
-                  value:
-                    user_id: 43
-                    username: janedoe
-                    message: Your account was created successfully and a password has been sent to your email address.
+                $ref: '#/components/schemas/Customer'
+              example:
+                object: customer
+                result:
+                  code: account_created
+                  message: Your account was created successfully. Your login details have been sent to your email address.
+                id: 901
+                username: janedoe
+                email: jane@example.com
+                pending_email: null
+                first_name: ''
+                last_name: ''
+                display_name: janedoe
+                avatar_url: https://secure.gravatar.com/avatar/8c87b489ce35cf2e2f39f80e282cb2e804932a56a213983eeeb428407d43b52d?s=96&d=mm&r=g
+                date_registered:
+                  iso: '2026-11-20T20:07:17+00:00'
+                  label: November 20, 2026, 8:07 pm
+                currency:
+                  currency_code: USD
+                  currency_symbol: $
+                  currency_symbol_pos: currency_prefix
+                  currency_minor_unit: 2
+                  currency_decimal_separator: .
+                  currency_thousand_separator: ','
+                  currency_prefix: $
+                  currency_suffix: ''
+                stats:
+                  orders_count: 0
+                  total_spent: '0'
+                  is_paying_customer: false
+                billing: null
+                shipping: null
+                tax:
+                  is_vat_exempt: false
+                  is_outside_base: false
+                recent_orders: []
+                meta: {}
+                extensions:
+                  email_verification:
+                    verified: false
         '400':
-          description: Bad request - reserved username, weak password, or account creation failed.
+          description: 'Bad request: `cocart_account_creation_failed`, `cocart_invalid_email`, `cocart_registration_invalid_username`, `cocart_registration_missing_password`, `cocart_registration_reserved_username`, `cocart_registration_weak_password`.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
-                reserved_username:
-                  summary: Username is reserved
+                cocart_account_creation_failed:
+                  summary: cocart_account_creation_failed
                   value:
-                    code: cocart_registration_error_reserved_username
+                    code: cocart_account_creation_failed
+                    message: ''
+                    data:
+                      status: 400
+                cocart_invalid_email:
+                  summary: cocart_invalid_email
+                  value:
+                    code: cocart_invalid_email
+                    message: A valid email address is required.
+                    data:
+                      status: 400
+                cocart_registration_invalid_username:
+                  summary: cocart_registration_invalid_username
+                  value:
+                    code: cocart_registration_invalid_username
+                    message: Please provide a valid username.
+                    data:
+                      status: 400
+                cocart_registration_missing_password:
+                  summary: cocart_registration_missing_password
+                  value:
+                    code: cocart_registration_missing_password
+                    message: Please enter an account password.
+                    data:
+                      status: 400
+                cocart_registration_reserved_username:
+                  summary: cocart_registration_reserved_username
+                  value:
+                    code: cocart_registration_reserved_username
                     message: This username cannot be registered. Please choose another.
                     data:
                       status: 400
-                weak_password:
-                  summary: Password is too weak
+                cocart_registration_weak_password:
+                  summary: cocart_registration_weak_password
                   value:
-                    code: cocart_registration_error_weak_password
+                    code: cocart_registration_weak_password
                     message: This password is too weak. Please choose a stronger password.
                     data:
                       status: 400
-                creation_failed:
-                  summary: Account creation failed (message varies)
-                  value:
-                    code: cocart_registration_error_failed_creation
-                    message: Registration is currently not allowed.
-                    data:
-                      status: 400
-        '404':
-          description: Not found - invalid email, invalid username or missing password.
+        '409':
+          description: 'Conflict: `cocart_account_exists`, `cocart_registration_username_exists`.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
-                invalid_email:
-                  summary: Invalid email
+                cocart_account_exists:
+                  summary: cocart_account_exists
                   value:
-                    code: cocart_registration_invalid_email
-                    message: A valid email address is required!
-                    data:
-                      status: 404
-                invalid_username:
-                  summary: Invalid username
-                  value:
-                    code: cocart_registration_error_invalid_username
-                    message: Please provide a valid username.
-                    data:
-                      status: 404
-                missing_password:
-                  summary: Missing password
-                  value:
-                    code: registration-error-missing-password
-                    message: Please enter an account password.
-                    data:
-                      status: 404
-        '405':
-          description: Not allowed - the email address or username is already registered.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                email_exists:
-                  summary: Email already registered
-                  value:
-                    code: cocart_registration_error_email_exists
+                    code: cocart_account_exists
                     message: An account is already registered with your email address.
                     data:
-                      status: 405
-                username_exists:
-                  summary: Username already registered
+                      status: 409
+                      account_exists: true
+                cocart_registration_username_exists:
+                  summary: cocart_registration_username_exists
                   value:
-                    code: cocart_registration_error_username_exists
+                    code: cocart_registration_username_exists
                     message: An account is already registered with that username. Please choose another.
                     data:
-                      status: 405
+                      status: 409
   /order-withdrawal:
     post:
       tags:
       - orders
-      summary: Submit order withdrawal request
-      description: |
-        Submits a public, no-login order withdrawal (right-of-withdrawal)
-        request. Supporting WooCommerce 11.1+'s own My Account →
-        /withdraw-order/ form as a REST endpoint. Requires WooCommerce's
-        `order_withdrawal` feature (WooCommerce > Settings > Advanced >
-        Features) to be enabled.
-
-        An order is matched by comparing the submitted `order_number` and 
-        `email` against existing orders. Submissions are rate limited to
-        one every 30 seconds per IP address and per email address.
-        Resubmitting for an order that already has a pending withdrawal
-        request is rejected and does not count against the rate limit.
+      summary: Ask to withdraw from an order
+      description: Records a request to withdraw from an order, as WooCommerce's own form does, and emails an acknowledgement. Returns `withdrawal_requested` in `result` with the email it went to. Needs WooCommerce 11.1 or later with its order withdrawal feature turned on; otherwise it is `404 cocart_order_withdrawal_unavailable`.
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
@@ -222,157 +212,154 @@ paths:
                 email:
                   description: Email address to match against the order and to send the acknowledgement to.
                   type: string
-                  format: email
                 email_confirmation:
-                  description: Confirmation of the email address. Must match the `email` field.
+                  description: Confirmation of the email address. Must match the email field.
                   type: string
-                  format: email
                 order_number:
                   description: The order number to withdraw from.
                   type: string
                 withdrawal_type:
-                  description: Whether to withdraw the full order or specific items only.
+                  description: Whether to withdraw the full order or specific items only. One of "full_order" or "specific_items_only".
                   type: string
-                  enum:
-                  - full_order
-                  - specific_items_only
                   default: full_order
                 additional_details:
-                  description: Additional details about the withdrawal. Required when `withdrawal_type` is `specific_items_only`.
+                  description: Additional details about the withdrawal. Required when only withdrawing specific items.
                   type: string
-              required:
-              - first_name
-              - last_name
-              - email
-              - email_confirmation
-              - order_number
-            example:
-              first_name: Jane
-              last_name: Doe
-              email: jane.doe@example.com
-              email_confirmation: jane.doe@example.com
-              order_number: '1234'
-              withdrawal_type: full_order
       responses:
         '200':
-          description: Withdrawal request submitted. Returned identically whether or not a matching order was found.
+          description: OK.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderWithdrawalResult'
+                $ref: '#/components/schemas/OrderWithdrawal'
               example:
-                success: true
-                email: jane.doe@example.com
+                object: withdrawal_request
+                result:
+                  code: withdrawal_requested
+                  message: We have received your withdrawal request and sent an acknowledgement to shopper@example.com.
+                email: shopper@example.com
         '400':
-          description: Bad request - a required field is missing or invalid.
+          description: 'Bad request: `cocart_order_withdrawal_email_mismatch`, `cocart_order_withdrawal_invalid_email`, `cocart_order_withdrawal_invalid_type`, `cocart_order_withdrawal_missing_additional_details`, `cocart_order_withdrawal_missing_email_confirmation`, `cocart_order_withdrawal_missing_first_name`, `cocart_order_withdrawal_missing_last_name`, `cocart_order_withdrawal_missing_order_number`.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
-                missing_first_name:
-                  summary: First name missing
-                  value:
-                    code: cocart_order_withdrawal_missing_first_name
-                    message: First name is required.
-                    data:
-                      status: 400
-                missing_last_name:
-                  summary: Last name missing
-                  value:
-                    code: cocart_order_withdrawal_missing_last_name
-                    message: Last name is required.
-                    data:
-                      status: 400
-                invalid_email:
-                  summary: Email missing or invalid
-                  value:
-                    code: cocart_order_withdrawal_invalid_email
-                    message: Please enter a valid email address.
-                    data:
-                      status: 400
-                missing_email_confirmation:
-                  summary: Email confirmation missing
-                  value:
-                    code: cocart_order_withdrawal_missing_email_confirmation
-                    message: Please confirm your email address.
-                    data:
-                      status: 400
-                email_mismatch:
-                  summary: Email and confirmation do not match
+                cocart_order_withdrawal_email_mismatch:
+                  summary: cocart_order_withdrawal_email_mismatch
                   value:
                     code: cocart_order_withdrawal_email_mismatch
                     message: Email addresses do not match.
                     data:
                       status: 400
-                missing_order_number:
-                  summary: Order number missing
+                cocart_order_withdrawal_invalid_email:
+                  summary: cocart_order_withdrawal_invalid_email
                   value:
-                    code: cocart_order_withdrawal_missing_order_number
-                    message: Order number is required.
+                    code: cocart_order_withdrawal_invalid_email
+                    message: Please enter a valid email address.
                     data:
                       status: 400
-                invalid_type:
-                  summary: Withdrawal type is not one of the accepted values
+                cocart_order_withdrawal_invalid_type:
+                  summary: cocart_order_withdrawal_invalid_type
                   value:
                     code: cocart_order_withdrawal_invalid_type
                     message: Choose what you want to withdraw.
                     data:
                       status: 400
-                missing_additional_details:
-                  summary: Additional details missing for a specific-items withdrawal
+                cocart_order_withdrawal_missing_additional_details:
+                  summary: cocart_order_withdrawal_missing_additional_details
                   value:
                     code: cocart_order_withdrawal_missing_additional_details
                     message: Please list the specific items you want to withdraw.
                     data:
                       status: 400
+                cocart_order_withdrawal_missing_email_confirmation:
+                  summary: cocart_order_withdrawal_missing_email_confirmation
+                  value:
+                    code: cocart_order_withdrawal_missing_email_confirmation
+                    message: Please confirm your email address.
+                    data:
+                      status: 400
+                cocart_order_withdrawal_missing_first_name:
+                  summary: cocart_order_withdrawal_missing_first_name
+                  value:
+                    code: cocart_order_withdrawal_missing_first_name
+                    message: First name is required.
+                    data:
+                      status: 400
+                cocart_order_withdrawal_missing_last_name:
+                  summary: cocart_order_withdrawal_missing_last_name
+                  value:
+                    code: cocart_order_withdrawal_missing_last_name
+                    message: Last name is required.
+                    data:
+                      status: 400
+                cocart_order_withdrawal_missing_order_number:
+                  summary: cocart_order_withdrawal_missing_order_number
+                  value:
+                    code: cocart_order_withdrawal_missing_order_number
+                    message: Order number is required.
+                    data:
+                      status: 400
         '404':
-          description: Not found - order withdrawal is not available on this store.
+          description: 'Not found: `cocart_order_withdrawal_unavailable`.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_order_withdrawal_unavailable
-                message: Order withdrawal is not available on this store.
-                data:
-                  status: 404
+              examples:
+                cocart_order_withdrawal_unavailable:
+                  summary: cocart_order_withdrawal_unavailable
+                  value:
+                    code: cocart_order_withdrawal_unavailable
+                    message: Order withdrawal is not available on this store.
+                    data:
+                      status: 404
         '409':
-          description: Conflict - a withdrawal request has already been submitted for the matched order.
+          description: 'Conflict: `cocart_order_withdrawal_already_requested`.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_order_withdrawal_already_requested
-                message: A withdrawal request has already been submitted for this order. Please contact us if you need help or want to make changes.
-                data:
-                  status: 409
+              examples:
+                cocart_order_withdrawal_already_requested:
+                  summary: cocart_order_withdrawal_already_requested
+                  value:
+                    code: cocart_order_withdrawal_already_requested
+                    message: A withdrawal request has already been submitted for this order. Please contact us if you need help or want to make changes.
+                    data:
+                      status: 409
         '429':
-          description: Too Many Requests - rate limited by IP address or email address.
+          description: 'Too many requests: `cocart_order_withdrawal_rate_limited`.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_order_withdrawal_rate_limited
-                message: Please wait before submitting another withdrawal request.
-                data:
-                  status: 429
+              examples:
+                cocart_order_withdrawal_rate_limited:
+                  summary: cocart_order_withdrawal_rate_limited
+                  value:
+                    code: cocart_order_withdrawal_rate_limited
+                    message: Please wait before submitting another withdrawal request.
+                    data:
+                      status: 429
         '500':
-          description: Internal server error - the rate limit could not be applied, or the notification emails could not be sent.
+          description: 'Server error: `cocart_order_withdrawal_failed`.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_order_withdrawal_failed
-                message: We could not submit your withdrawal request. Please try again or contact us if the problem continues.
-                data:
-                  status: 500
+              examples:
+                cocart_order_withdrawal_failed:
+                  summary: cocart_order_withdrawal_failed
+                  value:
+                    code: cocart_order_withdrawal_failed
+                    message: We could not submit your withdrawal request. Please try again or contact us if the problem continues.
+                    data:
+                      status: 500
   /batch:
     servers:
-    - url: "{protocol}://{host}/wp-json/cocart"
+    - url: '{protocol}://{host}/wp-json/cocart'
       description: The batch route is outside the versioned namespace.
       variables:
         protocol:
@@ -385,42 +372,26 @@ paths:
     post:
       tags:
       - batch
-      summary: Run several requests in one
-      description: |
-        Runs up to 25 CoCart requests (filterable up to 50 with `cocart_get_max_batch_size`) in one HTTP request.
-
-        When every request is a cart route (`/cocart/v2/cart…`), the response is **one cart**: the cart returned by the last request that succeeded, with the notices of every request merged into its `notices`. A request that failed is reported as an `error` notice instead, so the client reads one up-to-date cart. A `cart_key` sent with the batch applies to every request in it.
-
-        If every cart request fails, or the batch includes other routes, or a request fails schema validation with `validation: require-all-validate`, the response is WordPress's standard batch envelope: one entry per request with its own `status`, `headers` and `body` (207 when the statuses differ). `require-all-validate` checks request schemas only: errors raised while a request runs don't stop the others.
-      parameters:
-      - name: cart_key
-        in: query
-        required: false
-        description: Cart key applied to every cart request in the batch.
-        schema:
-          type: string
+      summary: Send requests in a batch
+      description: 'Sends several requests in one. When every request is to a cart route, the response is the cart after them all, with each failed request as an `error` notice. Otherwise it is WordPress''s batch envelope, `{"responses": [...]}`, with each response''s body, status and headers.'
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-              - requests
               properties:
                 validation:
                   type: string
                   enum:
-                  - normal
                   - require-all-validate
+                  - normal
                   default: normal
                 requests:
                   type: array
                   maxItems: 25
                   items:
                     type: object
-                    required:
-                    - path
                     properties:
                       method:
                         type: string
@@ -433,7 +404,6 @@ paths:
                         default: POST
                       path:
                         type: string
-                        description: Route with a leading slash, e.g. `/cocart/v2/cart/add-item`. API v1 routes are refused.
                       body:
                         type: object
                         additionalProperties: true
@@ -445,65 +415,240 @@ paths:
                           - type: array
                             items:
                               type: string
-            example:
-              requests:
-              - method: POST
-                path: /cocart/v2/cart/add-item
-                body:
-                  id: "154"
-                  quantity: "1"
-              - method: POST
-                path: /cocart/v2/cart/apply-coupon
-                body:
-                  code: save10
+                    required:
+                    - path
+              required:
+              - requests
       responses:
-        "200":
-          description: "Every request was a cart route and at least one succeeded: the cart after the batch, with failed requests as `error` notices."
+        '200':
+          description: OK.
           content:
             application/json:
               schema:
-                type: object
-                description: A cart response, as `GET /cocart/v2/cart` returns it.
-                additionalProperties: true
+                $ref: '#/components/schemas/BatchResponse'
               example:
-                cart_key: t_d8f5452294c521ed95f41f90b8768d
+                cart_hash: 9660c269f8154ab17ddc480c24891f9e
+                cart_key: test_cart_key_123
+                currency:
+                  currency_code: USD
+                  currency_symbol: $
+                  currency_symbol_pos: currency_prefix
+                  currency_minor_unit: 2
+                  currency_decimal_separator: .
+                  currency_thousand_separator: ','
+                  currency_prefix: $
+                  currency_suffix: ''
+                customer:
+                  billing_address:
+                    billing_first_name: Jane
+                    billing_last_name: Doe
+                    billing_company: ''
+                    billing_country: US
+                    billing_address_1: 123 Main St
+                    billing_address_2: ''
+                    billing_postcode: '75001'
+                    billing_city: Paris
+                    billing_state: ''
+                    billing_phone: 0123456789
+                    billing_email: allowed@example.com
+                  shipping_address:
+                    shipping_first_name: Jane
+                    shipping_last_name: Doe
+                    shipping_company: ''
+                    shipping_country: US
+                    shipping_address_1: 123 Test Street
+                    shipping_address_2: ''
+                    shipping_postcode: '90210'
+                    shipping_city: Paris
+                    shipping_state: CA
+                    shipping_phone: 0123456789
+                items:
+                - item_key: 228bbc2f87caeb21bb7f6949fddcb91d
+                  id: 2322
+                  name: Test Product
+                  title: Test Product
+                  variation: {}
+                  price: '1000'
+                  regular_price: ''
+                  on_sale: false
+                  quantity:
+                    value: 1
+                    minimum: 1
+                    maximum: 9999
+                    multiple_of: 1
+                    editable: true
+                  totals:
+                    subtotal: '1000'
+                    subtotal_tax: '0'
+                    total: '1000'
+                    tax: '0'
+                  slug: test-product
+                  meta:
+                    product_type: simple
+                    sku: ''
+                    dimensions:
+                      length: ''
+                      width: ''
+                      height: ''
+                      unit: in
+                    weight: '0.0'
+                  backorders: ''
+                  cart_item_data: {}
+                  featured_image: ''
+                  extensions: {}
                 item_count: 1
-                items: []
+                items_weight: '0'
+                coupons: []
+                needs_payment: true
+                needs_shipping: false
+                shipping: []
+                fees:
+                  handling:
+                    name: Handling
+                    fee: '200'
+                taxes: []
+                totals:
+                  subtotal: '1000'
+                  subtotal_tax: '0'
+                  fee_total: '200'
+                  fee_tax: '0'
+                  discount_total: '0'
+                  discount_tax: '0'
+                  shipping_total: '0'
+                  shipping_tax: '0'
+                  total: '1200'
+                  total_tax: '0'
+                removed_items: []
+                cross_sells: []
                 notices:
                   error:
-                    "1": Coupon "save1o" does not exist!
-        "207":
-          description: "The standard batch envelope: one result per request."
+                  - This product cannot be added to the cart.
+                  success:
+                  - “Test Product” has been added to your cart.
+                extensions:
+                  points_and_rewards:
+                    points_balance: 0
+                    points_to_earn: 10
+                    redemption_coupon: ''
+                meta: {}
+        '207':
+          description: 'Some requests failed: the batch envelope.'
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  failed:
-                    type: string
-                    description: "`validation` when a request failed schema validation under `require-all-validate`; nothing ran."
-                  responses:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        status:
-                          type: integer
-                        headers:
-                          type: object
-                          additionalProperties: true
-                        body: {}
-        "400":
-          description: "Invalid batch: more requests than allowed, or an API v1 path (`cocart_rest_invalid_path`)."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/BatchResponse'
               example:
-                code: cocart_rest_invalid_path
-                message: Invalid path provided.
-                data:
-                  status: 400
+                responses:
+                - body:
+                    cart_hash: ''
+                    cart_key: test_cart_key_123
+                    currency:
+                      currency_code: USD
+                      currency_symbol: $
+                      currency_symbol_pos: currency_prefix
+                      currency_minor_unit: 2
+                      currency_decimal_separator: .
+                      currency_thousand_separator: ','
+                      currency_prefix: $
+                      currency_suffix: ''
+                    customer:
+                      billing_address:
+                        billing_first_name: Jane
+                        billing_last_name: Doe
+                        billing_company: ''
+                        billing_country: US
+                        billing_address_1: 123 Main St
+                        billing_address_2: ''
+                        billing_postcode: '75001'
+                        billing_city: Paris
+                        billing_state: ''
+                        billing_phone: 0123456789
+                        billing_email: allowed@example.com
+                      shipping_address:
+                        shipping_first_name: Jane
+                        shipping_last_name: Doe
+                        shipping_company: ''
+                        shipping_country: US
+                        shipping_address_1: 123 Test Street
+                        shipping_address_2: ''
+                        shipping_postcode: '90210'
+                        shipping_city: Paris
+                        shipping_state: CA
+                        shipping_phone: 0123456789
+                    items: []
+                    coupons: []
+                    removed_items: []
+                    cross_sells: []
+                    shipping: []
+                    fees: {}
+                    taxes: []
+                    item_count: 0
+                    items_weight: '0'
+                    needs_payment: false
+                    needs_shipping: false
+                    totals:
+                      subtotal: '0'
+                      subtotal_tax: '0'
+                      fee_total: '0'
+                      fee_tax: '0'
+                      discount_total: '0'
+                      discount_tax: '0'
+                      shipping_total: '0'
+                      shipping_tax: '0'
+                      total: '0'
+                      total_tax: '0'
+                    notices:
+                      notice:
+                      - Cart is cleared.
+                    meta: {}
+                  status: 200
+                  headers:
+                    Cart-Key: test_cart_key_123
+                    Allow: POST
+                - body:
+                    code: cocart_rest_not_authorized
+                    message: Sorry, you are not authorized.
+                    data:
+                      status: 401
+                  status: 401
+                  headers: {}
+        '400':
+          description: 'Bad request: `cocart_rest_invalid_path`, `rest_invalid_param`, `rest_missing_callback_param`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                cocart_rest_invalid_path:
+                  summary: cocart_rest_invalid_path
+                  value:
+                    code: cocart_rest_invalid_path
+                    message: Invalid path provided.
+                    data:
+                      status: 400
+                rest_invalid_param:
+                  summary: rest_invalid_param
+                  value:
+                    code: rest_invalid_param
+                    message: 'Invalid parameter(s): requests'
+                    data:
+                      status: 400
+                      params:
+                        requests: requests must contain at most 25 items.
+                      details:
+                        requests:
+                          code: rest_too_many_items
+                          message: requests must contain at most 25 items.
+                          data: null
+                rest_missing_callback_param:
+                  summary: rest_missing_callback_param
+                  value:
+                    code: rest_missing_callback_param
+                    message: 'Missing parameter(s): requests'
+                    data:
+                      status: 400
+                      params:
+                      - requests
 components:
   securitySchemes:
     basicAuth:
@@ -522,53 +667,1732 @@ components:
       description: |
         Bearer token authentication (JWT). Not required for registering a customer.
   schemas:
-    RegisteredCustomer:
+    BatchResponse:
+      description: The cart, when every request was to a cart route, or WordPress's batch envelope.
+      oneOf:
+      - allOf:
+        - $ref: '#/components/schemas/Cart'
+        required:
+        - cart_key
+      - $ref: '#/components/schemas/BatchResponses'
+    BatchResponses:
+      description: 'WordPress''s batch envelope: each request''s response.'
       type: object
-      description: The newly registered customer.
       properties:
-        user_id:
+        failed:
+          description: 'With `validation` set to `require-all-validate`: "validation" when a request failed validation, and none was run.'
+          type: string
+          enum:
+          - validation
+          readOnly: true
+        responses:
+          description: Each request's response. When none was run, null for each request that was valid.
+          type: array
+          items:
+            type: object
+            properties:
+              body:
+                description: What the route returned, or its error.
+                additionalProperties: true
+                readOnly: true
+              status:
+                description: HTTP status code of the response.
+                type: integer
+                readOnly: true
+              headers:
+                description: HTTP headers of the response.
+                type: object
+                additionalProperties: true
+                readOnly: true
+            nullable: true
+          readOnly: true
+      required:
+      - responses
+    Cart:
+      description: 'The cart, as `GET /cart` gives it, with what CoCart Plus adds: its `meta`, and each coupon''s `discount_type`. Fees, shipping packages and their rates are keyed by ID.'
+      type: object
+      properties:
+        cart_hash:
+          description: A Unique hash key of the carts contents.
+          type: string
+          readOnly: true
+        cart_key:
+          description: The cart key identifying the cart in session.
+          type: string
+          readOnly: true
+        currency:
+          description: The store currency information.
+          type: object
+          properties:
+            currency_code:
+              description: The currency code (in ISO format) for returned prices.
+              type: string
+              readOnly: true
+            currency_symbol:
+              description: The currency symbol for the currency which can be used to format returned prices.
+              type: string
+              readOnly: true
+            currency_symbol_pos:
+              description: The currency symbol position to which the currency needs to return for the prices.
+              type: string
+              readOnly: true
+            currency_minor_unit:
+              description: The currency minor unit (number of digits after the decimal separator) for returned prices.
+              type: integer
+              readOnly: true
+            currency_decimal_separator:
+              description: The decimal separator for the currency which can be used to format returned prices.
+              type: string
+              readOnly: true
+            currency_thousand_separator:
+              description: The thousand separator for the currency which can be used to format returned prices.
+              type: string
+              readOnly: true
+            currency_prefix:
+              description: The price prefix for the currency which can be used to format returned prices.
+              type: string
+              readOnly: true
+            currency_suffix:
+              description: The price prefix for the currency which can be used to format returned prices.
+              type: string
+              readOnly: true
+          readOnly: true
+        customer:
+          description: The customer information.
+          type: object
+          properties:
+            billing_address:
+              description: Customers billing address.
+              type: object
+              properties:
+                billing_first_name:
+                  description: Customers billing first name.
+                  type: string
+                  readOnly: true
+                billing_last_name:
+                  description: Customers billing last name.
+                  type: string
+                  readOnly: true
+                billing_company:
+                  description: Customers billing company name.
+                  type: string
+                  readOnly: true
+                billing_country:
+                  description: Customers billing country.
+                  type: string
+                  readOnly: true
+                billing_address_1:
+                  description: Customers billing address line one.
+                  type: string
+                  readOnly: true
+                billing_address_2:
+                  description: Customers billing address line two.
+                  type: string
+                  readOnly: true
+                billing_city:
+                  description: Customers billing address city.
+                  type: string
+                  readOnly: true
+                billing_state:
+                  description: Customers billing state.
+                  type: string
+                  readOnly: true
+                billing_postcode:
+                  description: Customers billing postcode or zip code.
+                  type: string
+                  readOnly: true
+                billing_phone:
+                  description: Customers billing phone.
+                  type: string
+                  readOnly: true
+                billing_email:
+                  description: Customers billing email address.
+                  type: string
+                  readOnly: true
+              readOnly: true
+            shipping_address:
+              description: Customers shipping address.
+              type: object
+              properties:
+                shipping_first_name:
+                  description: Customers shipping first name.
+                  type: string
+                  readOnly: true
+                shipping_last_name:
+                  description: Customers shipping last name.
+                  type: string
+                  readOnly: true
+                shipping_company:
+                  description: Customers shipping company name.
+                  type: string
+                  readOnly: true
+                shipping_country:
+                  description: Customers shipping country.
+                  type: string
+                  readOnly: true
+                shipping_address_1:
+                  description: Customers shipping address line one.
+                  type: string
+                  readOnly: true
+                shipping_address_2:
+                  description: Customers shipping address line two.
+                  type: string
+                  readOnly: true
+                shipping_city:
+                  description: Customers shipping address city.
+                  type: string
+                  readOnly: true
+                shipping_state:
+                  description: Customers shipping state.
+                  type: string
+                  readOnly: true
+                shipping_postcode:
+                  description: Customers shipping postcode or zip code.
+                  type: string
+                  readOnly: true
+                shipping_phone:
+                  description: Customer's shipping phone.
+                  type: string
+                  readOnly: true
+              readOnly: true
+          readOnly: true
+        items:
+          description: The list of items in the cart.
+          type: array
+          items:
+            type: object
+            properties:
+              item_key:
+                description: Unique ID of the item in the cart.
+                type: string
+                readOnly: true
+              id:
+                description: Product ID or Variation ID of the item in the cart.
+                type: integer
+                readOnly: true
+              name:
+                description: The name of the item in the cart.
+                type: string
+                readOnly: true
+              title:
+                description: The title of the item in the cart.
+                type: string
+                readOnly: true
+              variation:
+                description: The variation attributes of the item in the cart (if item is a variation of a variable product).
+                type: object
+              price:
+                description: The price of the item in the cart.
+                type: string
+                readOnly: true
+              regular_price:
+                description: The regular price of the item in the cart, before any sale discount. Empty if the item is not on sale.
+                type: string
+                readOnly: true
+              on_sale:
+                description: Whether the item in the cart is currently on sale.
+                type: boolean
+                readOnly: true
+              quantity:
+                description: The quantity of the item in the cart and minimum and maximum purchase capability.
+                type: object
+                properties:
+                  value:
+                    description: The quantity of the item in the cart.
+                    type: number
+                    readOnly: true
+                  minimum:
+                    description: The minimum purchase amount required.
+                    type: number
+                    readOnly: true
+                  maximum:
+                    description: The maximum purchase amount allowed. If -1 the item has an unlimited purchase amount.
+                    type: number
+                    readOnly: true
+                  multiple_of:
+                    description: The quantity must be a multiple of this value.
+                    type: number
+                    readOnly: true
+                  editable:
+                    description: Whether the quantity of the item is editable.
+                    type: boolean
+                    readOnly: true
+                readOnly: true
+              totals:
+                description: The totals of the item in the cart.
+                type: object
+                properties:
+                  subtotal:
+                    description: The subtotal of the item in the cart.
+                    type: string
+                    readOnly: true
+                  subtotal_tax:
+                    description: The subtotal tax of the item in the cart.
+                    type: string
+                    readOnly: true
+                  total:
+                    description: The total of the item in the cart.
+                    type: string
+                    readOnly: true
+                  tax:
+                    description: The total tax of the item in the cart.
+                    type: string
+                    readOnly: true
+                readOnly: true
+              slug:
+                description: The product slug of the item in the cart.
+                type: string
+                readOnly: true
+              meta:
+                description: The meta data of the item in the cart.
+                type: object
+                properties:
+                  product_type:
+                    description: The product type of the item in the cart.
+                    type: string
+                    readOnly: true
+                  sku:
+                    description: The SKU of the item in the cart.
+                    type: string
+                    readOnly: true
+                  dimensions:
+                    description: The dimensions of the item in the cart.
+                    type: object
+                    properties:
+                      length:
+                        description: The length of the item in the cart.
+                        type: string
+                        readOnly: true
+                      width:
+                        description: The width of the item in the cart.
+                        type: string
+                        readOnly: true
+                      height:
+                        description: The height of the item in the cart.
+                        type: string
+                        readOnly: true
+                      unit:
+                        description: The unit measurement of the item in the cart.
+                        type: string
+                        readOnly: true
+                  weight:
+                    description: The weight of the item in the cart.
+                    type: string
+                    readOnly: true
+                readOnly: true
+              backorders:
+                description: The price of the item in the cart.
+                type: string
+                readOnly: true
+              cart_item_data:
+                description: Custom item data applied to the item in the cart (if any).
+                type: object
+                additionalProperties: true
+              featured_image:
+                description: The featured image of the item in the cart.
+                type: string
+                readOnly: true
+              extensions:
+                $ref: '#/components/schemas/CartItemExtensions'
+          readOnly: true
+        item_count:
+          description: The number of items in the cart.
           type: integer
-          description: Unique identifier for the new user.
-        username:
+          readOnly: true
+        items_weight:
+          description: The total weight of all items in the cart.
           type: string
-          description: The username registered for the new user.
-        message:
-          type: string
-          description: Human-readable confirmation message.
-    OrderWithdrawalResult:
-      type: object
-      description: |
-        The result of submitting an order withdrawal request. Returned
-        identically whether or not the request matched an existing order.
-      properties:
-        success:
+          readOnly: true
+        coupons:
+          description: Coupons added to the cart.
+          type: array
+          items:
+            type: object
+            properties:
+              coupon:
+                description: The coupon code.
+                type: string
+                readOnly: true
+              label:
+                description: The coupon label.
+                type: string
+                readOnly: true
+              saving:
+                description: The amount discounted from the cart.
+                type: string
+                readOnly: true
+              saving_html:
+                description: The amount discounted from the cart (HTML formatted).
+                type: string
+                readOnly: true
+              discount_type:
+                description: The coupon's discount type, e.g. "percent" or "fixed_cart".
+                type: string
+                readOnly: true
+          readOnly: true
+        needs_payment:
+          description: True if the cart needs payment. False for carts with only free products and no shipping costs.
           type: boolean
-          description: Whether the withdrawal request was submitted.
+          readOnly: true
+        needs_shipping:
+          description: True if the cart needs shipping and requires the showing of shipping costs.
+          type: boolean
+          readOnly: true
+        shipping:
+          description: The shipping packages available to the customer. An empty list (`[]`) when the cart needs no shipping.
+          oneOf:
+          - type: object
+            properties:
+              total_packages:
+                description: The number of shipping packages available calculated on the shipping address.
+                type: integer
+                readOnly: true
+              show_package_details:
+                description: True if the cart meets the criteria for showing items in the cart assigned to package.
+                type: boolean
+                readOnly: true
+              has_calculated_shipping:
+                description: True if the cart meets the criteria for showing shipping packages and rates have been calculated.
+                type: boolean
+                readOnly: true
+              packages:
+                description: 'The packages returned after calculating shipping. Keyed by package: `default` for the first, then WooCommerce''s package ID.'
+                type: object
+                additionalProperties:
+                  description: The default package.
+                  type: object
+                  properties:
+                    package_name:
+                      description: The package name.
+                      type: string
+                      readOnly: true
+                    rates:
+                      description: The packages returned after calculating shipping. Keyed by rate ID.
+                      type: object
+                      properties:
+                        '[a-z0-9]':
+                          type: object
+                          properties:
+                            key:
+                              description: The rate key.
+                              type: string
+                              readOnly: true
+                            method_id:
+                              description: The method ID.
+                              type: string
+                              readOnly: true
+                            instance_id:
+                              description: The instance ID.
+                              type: integer
+                              readOnly: true
+                            label:
+                              description: The rate label.
+                              type: string
+                              readOnly: true
+                            cost:
+                              description: The rate cost.
+                              type: string
+                              readOnly: true
+                            html:
+                              description: The rate label and cost formatted.
+                              type: string
+                              readOnly: true
+                            taxes:
+                              description: The rate tax cost, all of its taxes added together.
+                              type: string
+                              readOnly: true
+                            chosen_method:
+                              description: The chosen method.
+                              type: boolean
+                              readOnly: true
+                            meta_data:
+                              description: The rate meta data.
+                              type: object
+                              properties:
+                                items:
+                                  description: The items the shipping rate has calculated based on.
+                                  type: string
+                                  readOnly: true
+                              readOnly: true
+                      additionalProperties:
+                        type: object
+                        properties:
+                          key:
+                            description: Rate ID, e.g. "flat_rate:1".
+                            type: string
+                            readOnly: true
+                          method_id:
+                            description: Shipping method ID, e.g. "flat_rate".
+                            type: string
+                            readOnly: true
+                          instance_id:
+                            description: Shipping method instance ID.
+                            type: integer
+                            readOnly: true
+                          label:
+                            description: Rate label.
+                            type: string
+                            readOnly: true
+                          cost:
+                            description: Cost, in minor units, or formatted for display with `formatted`.
+                            type: string
+                            readOnly: true
+                          html:
+                            description: The rate as WooCommerce labels it, with its cost, as plain text.
+                            type: string
+                            readOnly: true
+                          taxes:
+                            description: The rate's taxes added together, in minor units, or formatted with `formatted`.
+                            type: string
+                            readOnly: true
+                          chosen_method:
+                            description: Whether this rate is the one chosen for the package.
+                            type: boolean
+                            readOnly: true
+                          meta_data:
+                            description: The rate's meta, keyed by meta key.
+                            type: object
+                            additionalProperties: true
+                            readOnly: true
+                      readOnly: true
+                    package_details:
+                      description: The package details if any.
+                      type: string
+                      readOnly: true
+                    index:
+                      description: The package index.
+                      readOnly: true
+                      oneOf:
+                      - type: integer
+                      - type: string
+                    chosen_method:
+                      description: The chosen method set from the available rates.
+                      type: string
+                      readOnly: true
+                    formatted_destination:
+                      description: The destination the package.
+                      type: string
+                      readOnly: true
+                  readOnly: true
+                readOnly: true
+            readOnly: true
+          - type: array
+            maxItems: 0
+            items: {}
+            readOnly: true
+        fees:
+          description: The cart fees. Keyed by fee ID.
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              name:
+                description: The fee name.
+                type: string
+                readOnly: true
+              fee:
+                description: The fee value.
+                type: string
+                readOnly: true
+          readOnly: true
+        taxes:
+          description: The cart taxes. Always a list, one entry per tax rate when the store tax display setting is itemized, or a single synthetic entry keyed "total" when it is not.
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                description: The tax rate code, or "total" when the store tax display setting is not itemized.
+                type: string
+                readOnly: true
+              name:
+                description: The tax name.
+                type: string
+                readOnly: true
+              price:
+                description: The tax price.
+                type: string
+                readOnly: true
+          readOnly: true
+        totals:
+          description: The store currency information.
+          type: object
+          properties:
+            subtotal:
+              description: The subtotal of all items, shipping (if any) and fees (if any) before coupons applied (if any) to the cart.
+              type: string
+              readOnly: true
+            subtotal_tax:
+              description: The subtotal tax of all items, shipping (if any) and fees (if any) before coupons applied (if any) to the cart.
+              type: string
+              readOnly: true
+            fee_total:
+              description: The fee total.
+              type: string
+              readOnly: true
+            fee_tax:
+              description: The fee tax.
+              type: string
+              readOnly: true
+            discount_total:
+              description: The discount total.
+              type: string
+              readOnly: true
+            discount_tax:
+              description: The discount tax.
+              type: string
+              readOnly: true
+            shipping_total:
+              description: The shipping total of the selected packages.
+              type: string
+              readOnly: true
+            shipping_tax:
+              description: The shipping tax.
+              type: string
+              readOnly: true
+            total:
+              description: The total of everything in the cart.
+              type: string
+              readOnly: true
+            total_tax:
+              description: The total tax.
+              type: string
+              readOnly: true
+          readOnly: true
+        removed_items:
+          description: Items that have been removed from the cart.
+          type: array
+          items:
+            type: object
+            properties:
+              item_key:
+                description: Unique ID of the item.
+                type: string
+                readOnly: true
+              id:
+                description: Product ID or Variation ID of the item.
+                type: integer
+                readOnly: true
+              name:
+                description: The name of the item.
+                type: string
+                readOnly: true
+              title:
+                description: The title of the item.
+                type: string
+                readOnly: true
+              variation:
+                description: The variation attributes of the item (if item is a variation of a variable product).
+                type: object
+              price:
+                description: The price of the item.
+                type: string
+                readOnly: true
+              quantity:
+                description: The quantity of the item.
+                type: number
+                readOnly: true
+              totals:
+                description: The totals of the item.
+                type: object
+                properties:
+                  subtotal:
+                    description: The subtotal of the item.
+                    type: number
+                    readOnly: true
+                  subtotal_tax:
+                    description: The subtotal tax of the item.
+                    type: number
+                    readOnly: true
+                  total:
+                    description: The total of the item.
+                    type: number
+                    readOnly: true
+                  total_tax:
+                    description: The total tax of the item.
+                    type: number
+                    readOnly: true
+                readOnly: true
+              slug:
+                description: The product slug of the item in the cart.
+                type: string
+                readOnly: true
+              meta:
+                description: The meta data of the item in the cart.
+                type: object
+                properties:
+                  product_type:
+                    description: The product type of the item.
+                    type: string
+                    readOnly: true
+                  sku:
+                    description: The SKU of the item.
+                    type: string
+                    readOnly: true
+                  dimensions:
+                    description: The dimensions of the item.
+                    type: object
+                    properties:
+                      length:
+                        description: The length of the item.
+                        type: string
+                        readOnly: true
+                      width:
+                        description: The width of the item.
+                        type: string
+                        readOnly: true
+                      height:
+                        description: The height of the item.
+                        type: string
+                        readOnly: true
+                      unit:
+                        description: The unit measurement of the item.
+                        type: string
+                        readOnly: true
+                  weight:
+                    description: The weight of the item.
+                    type: string
+                    readOnly: true
+                readOnly: true
+              backorders:
+                description: The price of the item in the cart.
+                type: string
+                readOnly: true
+              cart_item_data:
+                description: Custom item data applied to the item (if any).
+                type: object
+              featured_image:
+                description: The featured image of the item in the cart.
+                type: string
+                readOnly: true
+          readOnly: true
+        cross_sells:
+          description: Items you may be interested in adding to the cart.
+          type: array
+          properties:
+            id:
+              description: Product ID or Variation ID of the cross-sell product.
+              type: integer
+              readOnly: true
+            name:
+              description: The name of the cross-sell product.
+              type: string
+              readOnly: true
+            title:
+              description: The title of the cross-sell product.
+              type: string
+              readOnly: true
+            slug:
+              description: The slug of the cross-sell product.
+              type: string
+              readOnly: true
+            price:
+              description: The price of the cross-sell product.
+              type: string
+              readOnly: true
+            regular_price:
+              description: The regular price of the cross-sell product.
+              type: string
+              readOnly: true
+            sale_price:
+              description: The sale price of the cross-sell product.
+              type: string
+              readOnly: true
+            image:
+              description: The image of the cross-sell product.
+              type: string
+              readOnly: true
+            average_rating:
+              description: The average rating of the cross-sell product.
+              type: string
+              readOnly: true
+            on_sale:
+              description: The sale status of the cross-sell product.
+              type: boolean
+              readOnly: true
+            type:
+              description: The product type of the cross-sell product.
+              type: string
+              readOnly: true
+          items:
+            type: object
+          readOnly: true
+        notices:
+          description: The cart notices.
+          type: object
+          properties:
+            success:
+              description: Notices for successful actions.
+              type: array
+              items:
+                type: string
+              readOnly: true
+            info:
+              description: Notices for informational actions.
+              type: array
+              items:
+                type: string
+              readOnly: true
+            error:
+              description: Notices for error actions.
+              type: array
+              items:
+                type: string
+              readOnly: true
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          readOnly: true
+        meta:
+          description: Meta saved on the cart with `update-cart-meta`, keyed by meta key. An empty object when there is none.
+          type: object
+          additionalProperties: true
+          readOnly: true
+        extensions:
+          $ref: '#/components/schemas/CartExtensions'
+    CartExtensions:
+      type: object
+      properties:
+        recurring_totals:
+          description: Recurring totals for each billing schedule in the cart.
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                description: 'The billing schedule: WooCommerce Subscriptions'' recurring cart key, or Milo Subscriptions'' interval and period, e.g. "1_month".'
+                type: string
+                readOnly: true
+              item_key:
+                description: Key of the first cart item on this schedule.
+                type: string
+                readOnly: true
+              coupons:
+                description: Coupons applied to the recurring cart, as the cart lists its coupons (not Milo Subscriptions).
+                type: array
+                items:
+                  type: object
+                  properties:
+                    coupon:
+                      description: Coupon code.
+                      type: string
+                    label:
+                      description: Coupon label.
+                      type: string
+                    discount_type:
+                      description: Discount type, e.g. "percent".
+                      type: string
+                    saving:
+                      description: What the coupon saves.
+                      type: string
+                    saving_html:
+                      description: What the coupon saves, as WooCommerce shows it.
+                      type: string
+                readOnly: true
+              shipping:
+                description: Shipping of the recurring cart (not Milo Subscriptions).
+                type: object
+                readOnly: true
+              fees:
+                description: Fees of the recurring cart, keyed by fee ID (not Milo Subscriptions).
+                type: object
+                readOnly: true
+              taxes:
+                description: Taxes of the recurring cart, one line per tax or one for all, as the cart gives them (not Milo Subscriptions).
+                type: array
+                items:
+                  type: object
+                  properties:
+                    key:
+                      description: Tax rate code, or "total" for all taxes together.
+                      type: string
+                    name:
+                      description: Tax label.
+                      type: string
+                    price:
+                      description: Tax amount, in minor units, or formatted with `formatted`.
+                      type: string
+                readOnly: true
+              totals:
+                description: Recurring totals.
+                type: object
+                properties:
+                  period:
+                    description: Billing period, e.g. "/ month".
+                    type: string
+                    readOnly: true
+                  subtotal:
+                    description: Recurring subtotal, in minor units (formatted for display with `formatted=true`).
+                    type: string
+                    readOnly: true
+                  total:
+                    description: Recurring total, in minor units (formatted for display with `formatted=true`).
+                    type: string
+                    readOnly: true
+                  label:
+                    description: Recurring total as WooCommerce displays it (not Milo Subscriptions).
+                    type: string
+                    readOnly: true
+                  first_renewal:
+                    description: First renewal.
+                    type: object
+                    properties:
+                      date:
+                        description: GMT date (Y-m-d H:i:s), or 0 when there is no renewal.
+                        readOnly: true
+                        oneOf:
+                        - type: string
+                        - type: integer
+                      formatted_date:
+                        description: Date formatted for display.
+                        type: string
+                        readOnly: true
+                      labelled:
+                        description: First renewal, ready to display.
+                        type: string
+                        readOnly: true
+                    readOnly: true
+                readOnly: true
+          readOnly: true
+        points_and_rewards:
+          description: Points and Rewards for the cart.
+          type: object
+          properties:
+            points_balance:
+              description: Points balance of the customer.
+              type: integer
+              readOnly: true
+            points_to_earn:
+              description: Points the cart earns.
+              type: integer
+              readOnly: true
+            redemption_coupon:
+              description: Points redemption coupon applied, or empty.
+              type: string
+              readOnly: true
+          readOnly: true
+      readOnly: true
+    CartItemExtensions:
+      type: object
+      properties:
+        event_ticket:
+          description: EventKoi event ticket data (if any) for the item in the cart.
+          type: object
+          properties:
+            ticket_name:
+              description: The name of the event ticket.
+              type: string
+              readOnly: true
+            ticket_id:
+              description: The EventKoi ticket ID.
+              type: integer
+              readOnly: true
+            event_id:
+              description: The EventKoi event ID.
+              type: integer
+              readOnly: true
+            event_title:
+              description: The title of the event.
+              type: string
+              readOnly: true
+            instance_timestamp:
+              description: The event instance timestamp for recurring events.
+              type: integer
+              readOnly: true
+          readOnly: true
+        subscription_data:
+          description: Subscription data (if any) for the item in the cart.
+          type: object
+          properties:
+            billing_period:
+              description: Subscription billing period.
+              type: object
+              properties:
+                interval:
+                  description: Subscription billing interval.
+                  readOnly: true
+                  oneOf:
+                  - type: string
+                  - type: integer
+                period:
+                  description: Subscription billing period.
+                  type: string
+                  readOnly: true
+                length:
+                  description: Subscription billing length.
+                  readOnly: true
+                  oneOf:
+                  - type: string
+                  - type: integer
+                trial_period:
+                  description: Subscription billing trial period.
+                  type: string
+                  readOnly: true
+                trial_length:
+                  description: Subscription billing trial length.
+                  readOnly: true
+                  oneOf:
+                  - type: string
+                  - type: integer
+                trial_expiration_date:
+                  description: 'When the free trial ends: GMT date (Y-m-d H:i:s) for a subscription started now, or 0 when there is no trial.'
+                  readOnly: true
+                  oneOf:
+                  - type: string
+                  - type: integer
+                expiration_date:
+                  description: 'When the subscription ends: GMT date (Y-m-d H:i:s) for a subscription started now, or 0 when it never expires.'
+                  readOnly: true
+                  oneOf:
+                  - type: string
+                  - type: integer
+              readOnly: true
+            sign_up_fee:
+              description: Subscription sign up fee.
+              type: string
+              readOnly: true
+            pay_now:
+              description: Subscription amount to pay now.
+              type: string
+              readOnly: true
+            needs_one_time_shipping:
+              description: Does the subscription only require shipping once?
+              type: boolean
+              readOnly: true
+            price_string:
+              description: The price of the subscription.
+              type: string
+              readOnly: true
+            first_renewal:
+              description: The subscriptions date and time of the first renewal.
+              type: object
+              properties:
+                date:
+                  description: 'First renewal: GMT date (Y-m-d H:i:s) for a subscription started now, or 0 when there is no renewal.'
+                  readOnly: true
+                  oneOf:
+                  - type: string
+                  - type: integer
+                timestamp:
+                  description: First renewal timestamp.
+                  type: integer
+                  readOnly: true
+                html:
+                  description: First renewal string.
+                  type: string
+                  readOnly: true
+              readOnly: true
+          readOnly: true
+        gift_recipient:
+          description: Gift recipient for this subscription cart item, set with `recipient_email` on `POST /cart/add-item`.
+          type: object
+          properties:
+            email:
+              description: Email address of the gift recipient.
+              type: string
+              format: email
+              readOnly: true
+          readOnly: true
+        subscription_schemes:
+          description: 'Purchase options for this cart item: one-time and/or subscription plans, with the current one selected. Listed only when there is a choice.'
+          type: array
+          items:
+            type: object
+            properties:
+              price:
+                description: Scheme price.
+                type: string
+                readOnly: true
+              period:
+                description: Scheme billing period label.
+                type: string
+                readOnly: true
+              value:
+                description: 'Scheme key: send it as `convert_to_sub` with `namespace` `update-item-schema` and the `item_key` to `POST /cart/update` to switch the item to this option ("0" for one-time).'
+                type: string
+                readOnly: true
+              selected:
+                description: Whether this scheme is currently selected.
+                type: boolean
+                readOnly: true
+              rest_url:
+                description: Ready-made request to switch the item to this option (`POST`).
+                type: string
+                readOnly: true
+          readOnly: true
+        composite_data:
+          description: Composite product configuration for the cart item.
+          type: object
+          properties:
+            components:
+              description: The configuration of each component, one entry per component.
+              type: array
+              items:
+                type: object
+                properties:
+                  component_id:
+                    description: Component ID, as the product's `composite_data.components` gives it in `id`.
+                    type: string
+                    readOnly: true
+                  id:
+                    description: Selected product or variation ID for this component.
+                    type: integer
+                    readOnly: true
+                  quantity:
+                    description: Quantity information for this component.
+                    type: object
+                    properties:
+                      value:
+                        description: Quantity selected for this component.
+                        type: integer
+                        readOnly: true
+                      minimum:
+                        description: Minimum quantity allowed for this component.
+                        type: integer
+                        readOnly: true
+                      maximum:
+                        description: Maximum quantity allowed for this component, or null if unlimited.
+                        type: integer
+                        readOnly: true
+                        nullable: true
+                    readOnly: true
+                  variation:
+                    description: Selected variation attributes for this component.
+                    type: object
+                    additionalProperties:
+                      type: string
+                    readOnly: true
+                  discount:
+                    description: Discount applied to this component, or null if none.
+                    type: number
+                    readOnly: true
+                    nullable: true
+                  optional:
+                    description: Whether this component is optional.
+                    type: boolean
+                    readOnly: true
+                  priced_individually:
+                    description: Whether this component is priced individually.
+                    type: boolean
+                    readOnly: true
+                  shipped_individually:
+                    description: Whether this component is shipped individually.
+                    type: boolean
+                    readOnly: true
+                  title:
+                    description: Component title.
+                    type: string
+                    readOnly: true
+              readOnly: true
+            child_item_keys:
+              description: Cart item keys of the composited child items.
+              type: array
+              items:
+                type: string
+              readOnly: true
+          readOnly: true
+        bundle_data:
+          description: Bundle configuration for the cart item.
+          type: object
+          properties:
+            items:
+              description: The bundle's items as configured, one entry per bundled item.
+              type: array
+              items:
+                type: object
+                properties:
+                  bundled_item_id:
+                    description: 'Bundled item ID: the item in the bundle''s definition, as `child_items` gives it.'
+                    type: integer
+                    readOnly: true
+                  id:
+                    description: Selected product or variation ID.
+                    type: integer
+                    readOnly: true
+                  quantity:
+                    description: Quantity information.
+                    type: object
+                    properties:
+                      value:
+                        description: Quantity value.
+                        type: integer
+                        readOnly: true
+                      minimum:
+                        description: Minimum quantity.
+                        type: integer
+                        readOnly: true
+                      maximum:
+                        description: Maximum quantity.
+                        type: integer
+                        readOnly: true
+                    readOnly: true
+                  variation:
+                    description: Selected variation attributes.
+                    type: object
+                    additionalProperties:
+                      type: string
+                    readOnly: true
+                  discount:
+                    description: Discount applied to this item, or null if none.
+                    type: number
+                    readOnly: true
+                    nullable: true
+                  optional_selected:
+                    description: Whether the customer included this optional item.
+                    type: boolean
+                    readOnly: true
+              readOnly: true
+            child_items:
+              description: Summary of bundled child items nested under this container.
+              type: array
+              items:
+                type: object
+                properties:
+                  item_key:
+                    description: Cart item key of the child item.
+                    type: string
+                    readOnly: true
+                  bundled_item_id:
+                    description: Internal bundle definition ID for this child.
+                    type: integer
+                    readOnly: true
+                  id:
+                    description: Product or variation ID.
+                    type: integer
+                    readOnly: true
+                  name:
+                    description: Product name.
+                    type: string
+                    readOnly: true
+                  quantity:
+                    description: Quantity information.
+                    type: object
+                    properties:
+                      value:
+                        description: Quantity value.
+                        type: integer
+                        readOnly: true
+                      minimum:
+                        description: Minimum quantity.
+                        type: integer
+                        readOnly: true
+                      maximum:
+                        description: Maximum quantity.
+                        type: integer
+                        readOnly: true
+                    readOnly: true
+                  price:
+                    description: Unit price in the smallest currency unit.
+                    type: string
+                    readOnly: true
+                  variation:
+                    description: Selected variation attributes.
+                    type: object
+                    additionalProperties:
+                      type: string
+                    readOnly: true
+              readOnly: true
+            child_item_keys:
+              description: Cart item keys of the bundled child items.
+              type: array
+              items:
+                type: string
+              readOnly: true
+          readOnly: true
+        accommodation_booking_data:
+          description: Accommodation booking check-in and check-out information for the cart item.
+          type: object
+          properties:
+            check_in:
+              description: Check-in date and time.
+              type: string
+              readOnly: true
+            check_out:
+              description: Check-out date and time.
+              type: string
+              readOnly: true
+          readOnly: true
+        booking_data:
+          description: Booking configuration for the cart item.
+          type: object
+          properties:
+            start_date:
+              description: Booking start date and time.
+              type: string
+              readOnly: true
+            end_date:
+              description: Booking end date and time.
+              type: string
+              readOnly: true
+            all_day:
+              description: Whether the booking spans the full day.
+              type: boolean
+              readOnly: true
+            resource_id:
+              description: Resource ID assigned to the booking.
+              type: integer
+              readOnly: true
+            persons:
+              description: Person counts per type for the booking.
+              type: array
+              items:
+                type: integer
+              readOnly: true
+            cost:
+              description: Calculated booking cost in the smallest currency unit.
+              type: string
+              readOnly: true
+          readOnly: true
+        discount:
+          description: Discount applied to this cart item by Advanced Dynamic Pricing.
+          type: object
+          properties:
+            original_price:
+              description: Original per-unit price before discount.
+              type: string
+              readOnly: true
+            saved_amount:
+              description: Amount saved on this line by the matched rule(s).
+              type: string
+              readOnly: true
+            is_free_item:
+              description: Whether this item was added free by a Buy X Get Y rule.
+              type: boolean
+              readOnly: true
+            rules:
+              description: Names of the pricing rules that matched this cart item.
+              type: array
+              items:
+                type: string
+              readOnly: true
+          readOnly: true
+        addons:
+          description: Add-on selections made by the customer for this cart item.
+          type: array
+          items:
+            type: object
+            properties:
+              field_label:
+                description: The add-on field label.
+                type: string
+                readOnly: true
+              field_type:
+                description: The add-on field type (e.g. custom_text, multiple_choice, file_upload).
+                type: string
+                readOnly: true
+              value:
+                description: The selected or entered value, pre-formatted for display.
+                type: string
+                readOnly: true
+              price:
+                description: Price contribution of this selection. For percentage_based, the percentage of the product price, e.g. "10" for 10%, not an amount.
+                type: string
+                readOnly: true
+              price_type:
+                description: 'Price type: flat_fee, quantity_based, or percentage_based.'
+                type: string
+                readOnly: true
+          readOnly: true
+        warranty:
+          description: Warranty selected for this cart item.
+          type: object
+          properties:
+            label:
+              description: Warranty label.
+              type: string
+              readOnly: true
+            type:
+              description: 'Warranty type: included or addon.'
+              type: string
+              readOnly: true
+            duration:
+              description: Human-readable warranty duration.
+              type: string
+              readOnly: true
+            cost:
+              description: Additional cost for this warranty.
+              type: string
+              readOnly: true
+          readOnly: true
+    Customer:
+      description: The customer, like a receipt. A request that changes something gives what it did first, in `result`.
+      type: object
+      properties:
+        object:
+          description: 'The kind of document: "customer".'
+          type: string
+          enum:
+          - customer
+          readOnly: true
+        result:
+          description: What the request did. Only in responses to requests that change something.
+          type: object
+          properties:
+            code:
+              description: Result code to branch on, not translated.
+              type: string
+              readOnly: true
+            message:
+              description: Message for the customer.
+              type: string
+              readOnly: true
+          readOnly: true
+        id:
+          description: Unique identifier for the customer.
+          type: integer
+          readOnly: true
+        username:
+          description: The username the account logs in with.
+          type: string
+          readOnly: true
         email:
+          description: The email address the account logs in with. May not be the billing email.
           type: string
           format: email
-          description: The email address the acknowledgement was sent to.
+          readOnly: true
+        pending_email:
+          description: A new email address waiting to be confirmed through the link sent to it, or null.
+          type: string
+          format: email
+          readOnly: true
+          nullable: true
+        first_name:
+          description: First name.
+          type: string
+          readOnly: true
+        last_name:
+          description: Last name.
+          type: string
+          readOnly: true
+        display_name:
+          description: Display name.
+          type: string
+          readOnly: true
+        avatar_url:
+          description: Avatar URL.
+          type: string
+          format: uri
+          readOnly: true
+        date_registered:
+          description: When the customer registered. Null when there is none.
+          type: object
+          properties:
+            iso:
+              description: The date in ISO 8601 format, with the site's UTC offset.
+              type: string
+              format: date-time
+              readOnly: true
+            label:
+              description: The date in the site's date and time format, for display.
+              type: string
+              readOnly: true
+          readOnly: true
+          nullable: true
+        currency:
+          description: The store currency, which total_spent is in.
+          type: object
+          properties:
+            currency_code:
+              description: Currency code.
+              type: string
+              readOnly: true
+            currency_symbol:
+              description: Currency symbol.
+              type: string
+              readOnly: true
+            currency_symbol_pos:
+              description: The currency symbol position to which the currency needs to return for the prices.
+              type: string
+              readOnly: true
+            currency_minor_unit:
+              description: Currency minor unit.
+              type: integer
+              readOnly: true
+            currency_decimal_separator:
+              description: Currency decimal separator.
+              type: string
+              readOnly: true
+            currency_thousand_separator:
+              description: Currency thousand separator.
+              type: string
+              readOnly: true
+            currency_prefix:
+              description: Currency prefix.
+              type: string
+              readOnly: true
+            currency_suffix:
+              description: Currency suffix.
+              type: string
+              readOnly: true
+          readOnly: true
+        stats:
+          description: What the customer has bought.
+          type: object
+          properties:
+            orders_count:
+              description: Number of orders.
+              type: integer
+              readOnly: true
+            total_spent:
+              description: Total the customer has spent. In minor units, e.g. "4999", or formatted for display with `formatted=true`.
+              type: string
+              readOnly: true
+            is_paying_customer:
+              description: Whether the customer has paid for an order.
+              type: boolean
+              readOnly: true
+          readOnly: true
+        billing:
+          description: Billing address. Null when there is none.
+          type: object
+          properties:
+            first_name:
+              description: First name.
+              type: string
+              readOnly: true
+            last_name:
+              description: Last name.
+              type: string
+              readOnly: true
+            company:
+              description: Company name.
+              type: string
+              readOnly: true
+            address_1:
+              description: Address line 1.
+              type: string
+              readOnly: true
+            address_2:
+              description: Address line 2.
+              type: string
+              readOnly: true
+            city:
+              description: City.
+              type: string
+              readOnly: true
+            state:
+              description: State/Province.
+              type: string
+              readOnly: true
+            postcode:
+              description: Postcode/ZIP.
+              type: string
+              readOnly: true
+            country:
+              description: Country code.
+              type: string
+              readOnly: true
+            email:
+              description: Email address.
+              type: string
+              readOnly: true
+            phone:
+              description: Phone number.
+              type: string
+              readOnly: true
+            formatted:
+              description: The address on one line, for display.
+              type: string
+              readOnly: true
+          readOnly: true
+          nullable: true
+        shipping:
+          description: Shipping address. Also null when the store doesn't ship, or only ships to the billing address. Null when there is none.
+          type: object
+          properties:
+            first_name:
+              description: First name.
+              type: string
+              readOnly: true
+            last_name:
+              description: Last name.
+              type: string
+              readOnly: true
+            company:
+              description: Company name.
+              type: string
+              readOnly: true
+            address_1:
+              description: Address line 1.
+              type: string
+              readOnly: true
+            address_2:
+              description: Address line 2.
+              type: string
+              readOnly: true
+            city:
+              description: City.
+              type: string
+              readOnly: true
+            state:
+              description: State/Province.
+              type: string
+              readOnly: true
+            postcode:
+              description: Postcode/ZIP.
+              type: string
+              readOnly: true
+            country:
+              description: Country code.
+              type: string
+              readOnly: true
+            phone:
+              description: Phone number.
+              type: string
+              readOnly: true
+            formatted:
+              description: The address on one line, for display.
+              type: string
+              readOnly: true
+          readOnly: true
+          nullable: true
+        tax:
+          description: How tax applies to the customer.
+          type: object
+          properties:
+            is_vat_exempt:
+              description: Whether the customer is exempt from VAT.
+              type: boolean
+              readOnly: true
+            is_outside_base:
+              description: Whether the customer is outside the store's base location.
+              type: boolean
+              readOnly: true
+          readOnly: true
+        recent_orders:
+          description: 'The customer''s most recent orders, newest first: 5 by default (`cocart_customer_recent_orders_limit`). An empty list when there are none.'
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                description: Order ID.
+                type: integer
+                readOnly: true
+              number:
+                description: Order number.
+                type: string
+                readOnly: true
+              status:
+                description: Order status.
+                type: object
+                properties:
+                  code:
+                    description: Status code, not translated and without the "wc-" prefix, e.g. on-hold. Use this in code.
+                    type: string
+                    readOnly: true
+                  label:
+                    description: Status label, translated, for display.
+                    type: string
+                    readOnly: true
+                readOnly: true
+              date_created:
+                description: When the order was placed. Null when there is none.
+                type: object
+                properties:
+                  iso:
+                    description: The date in ISO 8601 format, with the site's UTC offset.
+                    type: string
+                    format: date-time
+                    readOnly: true
+                  label:
+                    description: The date in the site's date and time format, for display.
+                    type: string
+                    readOnly: true
+                readOnly: true
+                nullable: true
+              total:
+                description: Order total, in the order's currency. In minor units, e.g. "4999", or formatted for display with `formatted=true`.
+                type: string
+                readOnly: true
+              href:
+                description: Link to the order.
+                type: string
+                format: uri
+                readOnly: true
+          readOnly: true
+        meta:
+          description: The customer's meta the store allows (`cocart_customer_allowed_meta_keys`). Keyed by meta key, with the first value of each as stored. Only keys the store allows, narrowed by `meta_keys`. An empty object when there are none.
+          type: object
+          additionalProperties: true
+          readOnly: true
+        extensions:
+          description: Other plugins' data on the customer, keyed by plugin. An empty object when there is none.
+          type: object
+          properties:
+            email_verification:
+              description: Whether the customer has confirmed their account email address, which links their past orders to the account.
+              type: object
+              properties:
+                verified:
+                  description: True once the account email address is confirmed.
+                  type: boolean
+                  readOnly: true
+              readOnly: true
+          readOnly: true
     ErrorResponse:
       type: object
-      description: Standard error response structure.
+      description: 'An error: nothing was changed. The shape is WordPress''s.'
+      required:
+      - code
+      - message
+      - data
       properties:
         code:
           type: string
-          description: Machine-readable error code.
-          example: cocart_invalid_parameter
+          description: 'A stable code to branch on: `cocart_` and snake case, or WordPress''s own `rest_` codes for arguments it refuses.'
         message:
           type: string
-          description: Human-readable error message.
-          example: Invalid parameter provided.
+          description: For the customer, as plain text.
         data:
           type: object
-          description: Additional error data.
+          required:
+          - status
+          additionalProperties: true
           properties:
             status:
               type: integer
-              description: HTTP status code.
-              example: 400
-          additionalProperties: true
+              description: The HTTP status.
+            field:
+              type: string
+              description: The first field at fault, as a path such as `billing.postcode`.
+            fields:
+              type: object
+              additionalProperties:
+                type: string
+              description: Every field at fault, by path, with its message.
+            reason:
+              type: string
+              description: The underlying plugin's own reason, when there is one.
+    OrderWithdrawal:
+      description: What asking to withdraw from an order did.
+      type: object
+      properties:
+        object:
+          description: 'The kind of document: "withdrawal_request".'
+          type: string
+          enum:
+          - withdrawal_request
+          readOnly: true
+        result:
+          description: What the request did. Only in responses to requests that change something.
+          type: object
+          properties:
+            code:
+              description: Result code to branch on, not translated.
+              type: string
+              readOnly: true
+            message:
+              description: Message for the customer.
+              type: string
+              readOnly: true
+          readOnly: true
+        email:
+          description: The email address the acknowledgement was sent to.
+          type: string
+          format: email
+          readOnly: true
 security:
 - {}
 - basicAuth: []

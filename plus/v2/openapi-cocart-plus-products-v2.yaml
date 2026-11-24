@@ -52,171 +52,172 @@ paths:
     get:
       tags:
       - products
-      summary: Get product shipping rates
-      description: |
-        Calculates and returns the available shipping rates for a product before it
-        is added to the cart. The product is temporarily added to a cart simulation
-        so that quantity-dependent shipping prices calculate correctly, then removed.
-
-        This endpoint is stateless: passing a `cart_key` is rejected with a 403 error
-        because shipping rate calculation must not be associated with a specific cart.
-
-        External and grouped product types cannot be calculated and return a 403 error.
-
-        The `id` may also be a SKU, resolved to a product ID first.
+      summary: Get a product's shipping rates
+      description: 'Calculates the shipping rates a product would have, without a cart: the `product`, the `quantity`, the store `currency`, whether the item is already `in_cart`, and the `packages`, each with its `id` (WooCommerce''s package ID, `"0"` for the first), `destination` and `rates`. Amounts follow `formatted`. Sending a `cart_key` is refused.'
       parameters:
       - name: id
         in: path
-        description: Unique identifier for the product or variation ID.
         required: true
+        description: Unique identifier for the product or variation ID.
         schema:
           type: string
       - name: quantity
         in: query
-        description: Quantity of this item to simulate adding to the cart.
         required: false
+        description: Quantity of this item to add to the cart.
         schema:
           type: string
           default: '1'
       - name: variation
         in: query
-        description: Variable attributes that identify the variation of the item.
         required: false
-        style: deepObject
-        explode: true
+        description: Variable attributes that identify the variation of the item.
         schema:
           type: object
-          additionalProperties:
-            type: string
+          items:
+            type: object
+            properties:
+              attribute:
+                description: Variation attribute name.
+                type: string
+              value:
+                description: Variation attribute value.
+                type: string
       - name: item_data
         in: query
-        description: Additional item data passed to make item unique.
         required: false
-        style: deepObject
-        explode: true
+        description: Additional item data passed to make item unique.
         schema:
           type: object
-          additionalProperties: true
+      - name: formatted
+        in: query
+        required: false
+        description: True if you want to return the price values formatted.
+        schema:
+          default: false
+          type: boolean
       responses:
         '200':
-          description: Shipping rates calculated successfully.
+          description: OK.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProductShippingRates'
               example:
-                item_key: 6364d3f0f495b6ab9dcf8d3b5c6e0b01
-                id: 123
-                parent_id: 0
-                name: Premium Quality T-Shirt
-                type: simple
-                item_match: true
+                object: shipping_rates
+                product:
+                  id: 2216
+                  parent_id: 0
+                  name: Shippable Test Product
+                  type: simple
+                quantity: 1
+                currency:
+                  currency_code: USD
+                  currency_symbol: $
+                  currency_symbol_pos: currency_prefix
+                  currency_minor_unit: 2
+                  currency_decimal_separator: .
+                  currency_thousand_separator: ','
+                  currency_prefix: $
+                  currency_suffix: ''
+                in_cart: false
                 packages:
-                  '1':
-                    rates:
-                      flat_rate:1:
-                        key: flat_rate:1
-                        method_id: flat_rate
-                        instance_id: 1
-                        label: Flat rate
-                        cost: '1000'
-                        html: 'Flat rate: $10.00'
-                        taxes: '0'
-                        meta_data:
-                          items: Premium Quality T-Shirt × 1
-                    formatted_destination: Beverly Hills, CA 90210, United States (US)
-        '403':
-          description: Forbidden - product type cannot be calculated or a cart key was passed.
+                - id: '0'
+                  destination: 123 Test Street, 75001 PARIS, France
+                  rates:
+                  - id: flat_rate:3182
+                    method_id: flat_rate
+                    instance_id: 3182
+                    label: Flat rate
+                    cost: '1000'
+                    tax: '150'
+                    meta_data:
+                    - key: items
+                      value: Shippable Test Product × 1
+        '400':
+          description: 'Bad request: `cocart_calculate_product_shipping_external_types_denied`, `cocart_calculate_product_shipping_grouped_types_denied`, `cocart_calculate_product_shipping_rates_cart_access_denied`, `cocart_calculate_product_shipping_rates_failed`, `cocart_no_variation_found`.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
-                cart_key_denied:
-                  summary: Cart key passed
-                  value:
-                    code: cocart_calculate_product_shipping_rates_cart_access_denied
-                    message: DO NOT associate a cart when calculating shipping rates for a product!
-                    data:
-                      status: 403
-                external_denied:
-                  summary: External product
+                cocart_calculate_product_shipping_external_types_denied:
+                  summary: cocart_calculate_product_shipping_external_types_denied
                   value:
                     code: cocart_calculate_product_shipping_external_types_denied
                     message: This product is external, therefore it cannot be calculated for shipping rates.
                     data:
-                      status: 403
-                grouped_denied:
-                  summary: Grouped product
+                      status: 400
+                cocart_calculate_product_shipping_grouped_types_denied:
+                  summary: cocart_calculate_product_shipping_grouped_types_denied
                   value:
                     code: cocart_calculate_product_shipping_grouped_types_denied
                     message: This product is a group of products, therefore it cannot be calculated for shipping rates.
                     data:
-                      status: 403
+                      status: 400
+                cocart_calculate_product_shipping_rates_cart_access_denied:
+                  summary: cocart_calculate_product_shipping_rates_cart_access_denied
+                  value:
+                    code: cocart_calculate_product_shipping_rates_cart_access_denied
+                    message: Shipping rates for a product are calculated without a cart. Leave out the cart key.
+                    data:
+                      status: 400
+                cocart_calculate_product_shipping_rates_failed:
+                  summary: cocart_calculate_product_shipping_rates_failed
+                  value:
+                    code: cocart_calculate_product_shipping_rates_failed
+                    message: Shipping rates could not be calculated for this product.
+                    data:
+                      status: 400
+                cocart_no_variation_found:
+                  summary: cocart_no_variation_found
+                  value:
+                    code: cocart_no_variation_found
+                    message: No matching variation found.
+                    data:
+                      status: 400
         '404':
-          description: Not found - the product ID, SKU or variation is invalid or missing.
+          description: 'Not found: `cocart_invalid_product`, `cocart_unknown_product_id`, `cocart_variation_invalid_id`.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
-                invalid_product:
-                  summary: Product is invalid (unpublished, or has no valid ID)
+                cocart_invalid_product:
+                  summary: cocart_invalid_product
                   value:
                     code: cocart_invalid_product
                     message: This product is invalid.
                     data:
                       status: 404
-                invalid_variation:
-                  summary: Variation ID does not belong to the parent product
-                  value:
-                    code: cocart_variation_invalid_id
-                    message: Invalid variation ID.
-                    data:
-                      status: 404
-                product_id_required:
-                  summary: No product ID or SKU provided
-                  value:
-                    code: cocart_product_id_required
-                    message: Product ID number is required!
-                    data:
-                      status: 404
-                unknown_product_id:
-                  summary: Product ID or SKU does not match any product
+                cocart_unknown_product_id:
+                  summary: cocart_unknown_product_id
                   value:
                     code: cocart_unknown_product_id
                     message: Product does not exist! Check that you have submitted a product ID or SKU ID correctly for a product that exists.
                     data:
                       status: 404
-                not_loaded:
-                  summary: CoCart core is not active
+                cocart_variation_invalid_id:
+                  summary: cocart_variation_invalid_id
+                  value:
+                    code: cocart_variation_invalid_id
+                    message: Invalid variation ID.
+                    data:
+                      status: 404
+        '500':
+          description: 'Server error: `cocart_not_loaded`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                cocart_not_loaded:
+                  summary: cocart_not_loaded
                   value:
                     code: cocart_not_loaded
                     message: Either the core of CoCart is not active or a specific class required does not exist.
                     data:
-                      status: 404
-        '405':
-          description: Method not allowed - the resolved product ID is not numeric.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_product_id_not_numeric
-                message: Product ID must be numeric!
-                data:
-                  status: 405
-        '500':
-          description: Internal server error - the product could not be added to the shipping calculation.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: cocart_calculate_product_shipping_rates_failed
-                message: Product could not be calculated!
-                data:
-                  status: 500
+                      status: 500
 components:
   securitySchemes:
     basicAuth:
@@ -235,262 +236,181 @@ components:
       description: |
         Bearer token authentication (JWT). Optional for products endpoints.
   schemas:
-    ProductShippingRates:
-      type: object
-      description: Shipping rates calculated for a product.
-      properties:
-        item_key:
-          type: string
-          description: The cart item key generated from the product, variation and item data.
-        id:
-          type: integer
-          description: Product ID.
-        parent_id:
-          type: integer
-          description: Parent product ID. 0 when the product has no parent.
-        name:
-          type: string
-          description: Product name.
-        type:
-          type: string
-          description: Product type (e.g. simple, variable, variation).
-        item_match:
-          type: boolean
-          description: Whether the generated item key matched the cart item key during simulation.
-        packages:
-          type: object
-          description: Shipping packages keyed by package number, each containing the available rates.
-          additionalProperties:
-            $ref: '#/components/schemas/ShippingRatesPackage'
-    ShippingRatesPackage:
-      type: object
-      properties:
-        rates:
-          type: object
-          description: Available shipping rates keyed by rate key.
-          additionalProperties:
-            $ref: '#/components/schemas/ProductShippingRate'
-        formatted_destination:
-          type: string
-          description: Formatted destination address the rates were calculated for.
-    ProductShippingRate:
-      type: object
-      properties:
-        key:
-          type: string
-          description: Rate key (e.g. "flat_rate:1").
-        method_id:
-          type: string
-          description: Shipping method ID.
-        instance_id:
-          type: integer
-          description: Shipping method instance ID.
-        label:
-          type: string
-          description: Shipping method label.
-        cost:
-          type: string
-          description: Shipping cost as a raw numeric string in the currency's smallest unit (e.g. "1000" = $10.00).
-        html:
-          type: string
-          description: Shipping method label with cost, formatted without HTML tags.
-        taxes:
-          type: string
-          description: Shipping tax amount as a raw numeric string. Empty string when no tax applies.
-        meta_data:
-          type: object
-          description: Rate meta data (e.g. the items included in the package).
-          additionalProperties: true
     ErrorResponse:
       type: object
-      description: Standard error response structure.
+      description: 'An error: nothing was changed. The shape is WordPress''s.'
+      required:
+      - code
+      - message
+      - data
       properties:
         code:
           type: string
-          description: Machine-readable error code.
-          example: cocart_invalid_parameter
+          description: 'A stable code to branch on: `cocart_` and snake case, or WordPress''s own `rest_` codes for arguments it refuses.'
         message:
           type: string
-          description: Human-readable error message.
-          example: Invalid parameter provided.
+          description: For the customer, as plain text.
         data:
           type: object
-          description: Additional error data.
+          required:
+          - status
+          additionalProperties: true
           properties:
             status:
               type: integer
-              description: HTTP status code.
-              example: 400
-          additionalProperties: true
+              description: The HTTP status.
+            field:
+              type: string
+              description: The first field at fault, as a path such as `billing.postcode`.
+            fields:
+              type: object
+              additionalProperties:
+                type: string
+              description: Every field at fault, by path, with its message.
+            reason:
+              type: string
+              description: The underlying plugin's own reason, when there is one.
     ProductExtensions:
-      description: What CoCart Plus adds to a product's `extensions` in the CoCart Starter products API (`GET /products`, `GET /products/{id}` and their variations). `{}` when there is none. Each key is there only when its plugin is active and it applies to the product; other plugins can add their own.
       type: object
+      description: What each supported plugin adds under a product's `extensions` on CoCart Starter's product routes, keyed by what the data is.
+      additionalProperties: true
       properties:
-        accommodation_booking_data:
-          description: 'Accommodation booking constraints for the product. Plugin: WooCommerce Accommodation Bookings.'
+        subscription_data:
+          description: Subscription data (if any) for the product.
           type: object
           properties:
-            min_nights:
-              description: Minimum number of nights required for the booking.
-              type: integer
-            max_nights:
-              description: Maximum number of nights allowed for the booking.
-              type: integer
-            check_in_time:
-              description: Check-in time in HH:MM format.
+            billing_period:
+              description: Subscription billing period details.
+              type: object
+              properties:
+                interval:
+                  description: Subscription billing interval.
+                  readOnly: true
+                  oneOf:
+                  - type: string
+                  - type: integer
+                period:
+                  description: Subscription billing period.
+                  type: string
+                  readOnly: true
+                length:
+                  description: Subscription billing length.
+                  readOnly: true
+                  oneOf:
+                  - type: string
+                  - type: integer
+                trial_period:
+                  description: Subscription trial period.
+                  type: string
+                  readOnly: true
+                trial_length:
+                  description: Subscription trial length.
+                  readOnly: true
+                  oneOf:
+                  - type: string
+                  - type: integer
+                trial_expiration_date:
+                  description: 'When the free trial ends: GMT date (Y-m-d H:i:s) for a subscription started now, or 0 when there is no trial.'
+                  readOnly: true
+                  oneOf:
+                  - type: string
+                  - type: integer
+                expiration_date:
+                  description: 'When the subscription ends: GMT date (Y-m-d H:i:s) for a subscription started now, or 0 when it never expires.'
+                  readOnly: true
+                  oneOf:
+                  - type: string
+                  - type: integer
+              readOnly: true
+            sign_up_fee:
+              description: Subscription sign up fee.
               type: string
-            check_out_time:
-              description: Check-out time in HH:MM format.
+              readOnly: true
+            pay_now:
+              description: Subscription amount to pay now.
               type: string
-        addons:
-          description: 'Add-on field definitions configured for this product. Plugin: WooCommerce Product Add-Ons.'
+              readOnly: true
+            needs_one_time_shipping:
+              description: Does the subscription only require shipping once?
+              type: boolean
+              readOnly: true
+            price_string:
+              description: The subscription price string.
+              type: string
+              readOnly: true
+            first_renewal:
+              description: The first renewal date and time of the subscription.
+              type: object
+              properties:
+                date:
+                  description: 'First renewal: GMT date (Y-m-d H:i:s) for a subscription started now, or 0 when there is no renewal.'
+                  readOnly: true
+                  oneOf:
+                  - type: string
+                  - type: integer
+                timestamp:
+                  description: First renewal Unix timestamp.
+                  type: integer
+                  readOnly: true
+                html:
+                  description: First renewal date as a human-readable string.
+                  type: string
+                  readOnly: true
+              readOnly: true
+          readOnly: true
+        points_and_rewards:
+          description: Points earning and redemption data for the product.
+          type: object
+          properties:
+            points_earned:
+              description: Number of points earned when purchasing this product.
+              type: integer
+              readOnly: true
+            max_discount:
+              description: Maximum discount redeemable on this product in the smallest currency unit. Empty string when no limit is set.
+              type: string
+              readOnly: true
+          readOnly: true
+        gifting:
+          description: Gifting configuration for this product.
+          type: object
+          properties:
+            giftable:
+              description: Whether this product can be purchased as a gift for a recipient (send `recipient_email` to `POST /cart/add-item`).
+              type: boolean
+              readOnly: true
+          readOnly: true
+        subscription_schemes:
+          description: 'Purchase options for this product: one-time and/or subscription plans. Listed only when there is a choice.'
           type: array
           items:
             type: object
             properties:
-              id:
-                description: Unique add-on field identifier.
-                type: integer
-              name:
-                description: Add-on field label shown to the customer.
-                type: string
-              type:
-                description: Field type (custom_text, custom_textarea, multiple_choice, checkbox, select, datepicker, file_upload, input_multiplier, custom_price).
-                type: string
-              description:
-                description: Optional field description shown below the label.
-                type: string
-              required:
-                description: Whether the field must be filled before adding to cart.
-                type: boolean
-              position:
-                description: Display order position (zero-based).
-                type: integer
-              display:
-                description: Sub-display style for multiple_choice fields (select, radiobutton, images).
-                type: string
-              adjust_price:
-                description: Whether this field adds a price adjustment to the product price.
-                type: boolean
               price:
-                description: Base price adjustment when adjust_price is true (options override this for choice-based types).
+                description: Scheme price.
                 type: string
-              price_type:
-                description: 'Price type: flat_fee, quantity_based, or percentage_based.'
+                readOnly: true
+              period:
+                description: Scheme billing period label.
                 type: string
-              restrictions:
-                description: Whether min/max restrictions are enabled for this field.
-                type: boolean
-              min:
-                description: Minimum value (character count for text fields, quantity for multiplier, price for custom_price).
-                type: number
-              max:
-                description: Maximum value (same units as min).
-                type: number
-              limit_file_types:
-                description: Whether file type restrictions are enabled (file_upload fields only).
-                type: boolean
-              allowed_file_types:
-                description: Allowed file extensions when limit_file_types is true (e.g. ["jpg","pdf"]).
-                type: array
-                items:
-                  type: string
-              options:
-                description: Selectable options for choice-based field types.
-                type: array
-                items:
-                  type: object
-                  properties:
-                    label:
-                      description: Option label.
-                      type: string
-                    price:
-                      description: Price adjustment for this option.
-                      type: string
-                    price_type:
-                      description: Price type for this option.
-                      type: string
-                    image:
-                      description: Image URL for swatch display (multiple_choice with images display).
-                      type: string
-        booking_data:
-          description: 'Bookable product configuration. Plugin: WooCommerce Bookings.'
-          type: object
-          properties:
-            duration_type:
-              description: Whether the booking duration is fixed or set by the customer.
-              type: string
-            duration_unit:
-              description: Unit of time used for the booking duration.
-              type: string
-            duration:
-              description: Number of duration units for the booking.
-              type: integer
-            has_persons:
-              description: Whether the booking supports person counts.
-              type: boolean
-            min_persons:
-              description: Minimum number of persons required for the booking.
-              type: integer
-            max_persons:
-              description: Maximum number of persons allowed for the booking.
-              type: integer
-            has_resources:
-              description: Whether the booking has selectable resources.
-              type: boolean
-            resource_label:
-              description: Label displayed for the resource selector.
-              type: string
-            booking_location:
-              description: Location details for the booking.
-              type: string
-        bundle_data:
-          description: 'Bundle product form configuration. Plugin: WooCommerce Product Bundles.'
-          type: object
-          properties:
-            layout:
-              description: Bundle layout mode.
-              type: string
-            items:
-              description: Bundled item definitions for form rendering.
-              type: array
-              items:
-                type: object
-                properties:
-                  id:
-                    description: Bundled product ID.
-                    type: integer
-                  optional:
-                    description: Whether this bundled item is optional.
-                    type: boolean
-                  quantity:
-                    description: Quantity constraints for this bundled item.
-                    type: object
-                    properties:
-                      value:
-                        description: Default quantity.
-                        type: integer
-                      minimum:
-                        description: Minimum quantity.
-                        type: integer
-                      maximum:
-                        description: Maximum quantity, or null if unlimited.
-                        type: integer
-                        nullable: true
-                  priced_individually:
-                    description: Whether this bundled item is priced individually.
-                    type: boolean
-                  discount:
-                    description: Discount applied to this bundled item, or null if none.
-                    type: number
-                    nullable: true
+                readOnly: true
+              value:
+                description: 'Scheme key: send it as `convert_to_sub` to `POST /cart/add-item` to add the product with this option ("0" for one-time). Without `convert_to_sub` the default option applies.'
+                type: string
+                readOnly: true
+              rest_url:
+                description: Ready-made request to add the product with this option (`POST`).
+                type: string
+                readOnly: true
+          readOnly: true
         composite_data:
-          description: 'Composite product form configuration. Plugin: WooCommerce Composite Products.'
+          description: Composite product form configuration.
           type: object
           properties:
             layout:
               description: Composite layout mode.
               type: string
+              readOnly: true
             components:
               description: Component definitions for form rendering.
               type: array
@@ -500,227 +420,333 @@ components:
                   id:
                     description: Component ID.
                     type: string
+                    readOnly: true
                   title:
                     description: Component title.
                     type: string
+                    readOnly: true
                   optional:
                     description: Whether this component is optional.
                     type: boolean
+                    readOnly: true
                   quantity_min:
                     description: Minimum quantity for this component.
                     type: integer
+                    readOnly: true
                   quantity_max:
                     description: Maximum quantity for this component, or null if unlimited.
                     type: integer
+                    readOnly: true
                     nullable: true
                   priced_individually:
                     description: Whether this component is priced individually.
                     type: boolean
+                    readOnly: true
                   discount:
                     description: Discount applied to this component, or null if none.
                     type: number
+                    readOnly: true
                     nullable: true
                   default_option_id:
                     description: Default product ID pre-selected for this component.
                     type: integer
+                    readOnly: true
                   options_style:
                     description: Display style for component options.
                     type: string
-        condition:
-          description: 'Product condition information. Plugin: Product Condition for WooCommerce.'
+                    readOnly: true
+              readOnly: true
+          readOnly: true
+        bundle_data:
+          description: Bundle product form configuration.
           type: object
           properties:
-            slug:
-              description: Condition slug identifier.
+            layout:
+              description: Bundle layout mode.
               type: string
-            label:
-              description: Human-readable condition label.
-              type: string
-            schema_condition:
-              description: Schema.org OfferItemCondition value.
-              type: string
-            custom_label:
-              description: Custom condition label text, when condition is "other" or "new-other".
-              type: string
-        discount:
-          description: 'Active discount information for this product. Plugin: Discount Rules for WooCommerce.'
+              readOnly: true
+            items:
+              description: Bundled item definitions for form rendering.
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    description: Bundled product ID.
+                    type: integer
+                    readOnly: true
+                  optional:
+                    description: Whether this bundled item is optional.
+                    type: boolean
+                    readOnly: true
+                  quantity:
+                    description: Quantity constraints for this bundled item.
+                    type: object
+                    properties:
+                      value:
+                        description: Default quantity.
+                        type: integer
+                        readOnly: true
+                      minimum:
+                        description: Minimum quantity.
+                        type: integer
+                        readOnly: true
+                      maximum:
+                        description: Maximum quantity, or null if unlimited.
+                        type: integer
+                        readOnly: true
+                        nullable: true
+                    readOnly: true
+                  priced_individually:
+                    description: Whether this bundled item is priced individually.
+                    type: boolean
+                    readOnly: true
+                  discount:
+                    description: Discount applied to this bundled item, or null if none.
+                    type: number
+                    readOnly: true
+                    nullable: true
+              readOnly: true
+          readOnly: true
+        accommodation_booking_data:
+          description: Accommodation booking constraints for the product.
           type: object
           properties:
-            original_price:
-              description: Original price before the discount rule is applied.
+            min_nights:
+              description: Minimum number of nights required for the booking.
+              type: integer
+              readOnly: true
+            max_nights:
+              description: Maximum number of nights allowed for the booking.
+              type: integer
+              readOnly: true
+            check_in_time:
+              description: Check-in time in HH:MM format.
               type: string
-            saved_amount:
-              description: Amount saved by the active discount rule.
+              readOnly: true
+            check_out_time:
+              description: Check-out time in HH:MM format.
               type: string
-        gifting:
-          description: 'Gifting configuration for this product. Plugin: WooCommerce Subscriptions gifting.'
+              readOnly: true
+          readOnly: true
+        booking_data:
+          description: Bookable product configuration.
           type: object
           properties:
-            giftable:
-              description: Whether this product can be purchased as a gift for a recipient (send `recipient_email` to `POST /cart/add-item`).
+            duration_type:
+              description: Whether the booking duration is fixed or set by the customer.
+              type: string
+              readOnly: true
+            duration_unit:
+              description: Unit of time used for the booking duration.
+              type: string
+              readOnly: true
+            duration:
+              description: Number of duration units for the booking.
+              type: integer
+              readOnly: true
+            has_persons:
+              description: Whether the booking supports person counts.
               type: boolean
+              readOnly: true
+            min_persons:
+              description: Minimum number of persons required for the booking.
+              type: integer
+              readOnly: true
+            max_persons:
+              description: Maximum number of persons allowed for the booking.
+              type: integer
+              readOnly: true
+            has_resources:
+              description: Whether the booking has selectable resources.
+              type: boolean
+              readOnly: true
+            resource_label:
+              description: Label displayed for the resource selector.
+              type: string
+              readOnly: true
+            booking_location:
+              description: Location details for the booking.
+              type: string
+              readOnly: true
+          readOnly: true
         msrp_data:
-          description: "Manufacturer's suggested retail price data for the product. Plugin: WooCommerce MSRP Pricing."
+          description: Manufacturer's suggested retail price data for the product.
           type: object
           properties:
             msrp_price:
+              type: string
               description: MSRP in the smallest currency unit (simple products only).
-              type: string
+              readOnly: true
             msrp_price_min:
+              type: string
               description: Lowest MSRP across variations in the smallest currency unit (variable products only).
-              type: string
+              readOnly: true
             msrp_price_max:
+              type: string
               description: Highest MSRP across variations in the smallest currency unit (variable products only).
-              type: string
-        points_and_rewards:
-          description: 'Points earning and redemption data for the product. Plugin: WooCommerce Points and Rewards.'
-          type: object
-          properties:
-            points_earned:
-              description: Number of points earned when purchasing this product.
-              type: integer
-            max_discount:
-              description: Maximum discount redeemable on this product in the smallest currency unit. Empty string when no limit is set.
-              type: string
+              readOnly: true
+          readOnly: true
         quantity_rules:
-          description: 'Quantity purchase rules for the product. Plugin: WooCommerce Min/Max Quantities.'
+          description: Quantity purchase rules for the product.
           type: object
           properties:
             minimum:
               description: Minimum quantity required to purchase. Zero means no minimum.
               type: integer
+              readOnly: true
             maximum:
               description: Maximum quantity allowed to purchase, or null if unlimited.
               type: integer
+              readOnly: true
               nullable: true
             group_of:
               description: Quantity must be purchased in multiples of this value. Zero means no restriction.
               type: integer
+              readOnly: true
             combine_variations:
               description: Whether quantities across all variations are combined when checking rules (variable products only).
               type: boolean
-        subscription_data:
-          description: 'Subscription data (if any) for the product. Plugins: WooCommerce Subscriptions, Milo Subscriptions.'
+              readOnly: true
+          readOnly: true
+        condition:
+          description: Product condition information.
           type: object
           properties:
-            billing_period:
-              description: Subscription billing period details.
-              type: object
-              properties:
-                interval:
-                  description: Subscription billing interval.
-                  oneOf:
-                  - type: string
-                  - type: integer
-                period:
-                  description: Subscription billing period.
-                  type: string
-                length:
-                  description: Subscription billing length.
-                  oneOf:
-                  - type: string
-                  - type: integer
-                trial_period:
-                  description: Subscription trial period.
-                  type: string
-                trial_length:
-                  description: Subscription trial length.
-                  oneOf:
-                  - type: string
-                  - type: integer
-                trial_expiration_date:
-                  description: 'When the free trial ends: GMT date (Y-m-d H:i:s) for a subscription started now, or 0 when there is no trial.'
-                  oneOf:
-                  - type: string
-                  - type: integer
-                expiration_date:
-                  description: 'When the subscription ends: GMT date (Y-m-d H:i:s) for a subscription started now, or 0 when it never expires.'
-                  oneOf:
-                  - type: string
-                  - type: integer
-            sign_up_fee:
-              description: Subscription sign up fee.
+            slug:
+              description: Condition slug identifier.
               type: string
-            pay_now:
-              description: Subscription amount to pay now.
+              readOnly: true
+            label:
+              description: Human-readable condition label.
               type: string
-            needs_one_time_shipping:
-              description: Does the subscription only require shipping once?
-              type: boolean
-            price_string:
-              description: The subscription price string.
+              readOnly: true
+            schema_condition:
+              description: Schema.org OfferItemCondition value.
               type: string
-            first_renewal:
-              description: The first renewal date and time of the subscription.
-              type: object
-              properties:
-                date:
-                  description: 'First renewal: GMT date (Y-m-d H:i:s) for a subscription started now, or 0 when there is no renewal.'
-                  oneOf:
-                  - type: string
-                  - type: integer
-                timestamp:
-                  description: First renewal Unix timestamp.
-                  type: integer
-                html:
-                  description: First renewal date as a human-readable string.
-                  type: string
-        subscription_schemes:
-          description: 'Purchase options for this product: one-time and/or subscription plans. Listed only when there is a choice. Plugin: All Products for WooCommerce Subscriptions.'
+              readOnly: true
+            custom_label:
+              description: Custom condition label text, when condition is "other" or "new-other".
+              type: string
+              readOnly: true
+          readOnly: true
+        discount:
+          description: Active discount information for this product.
+          type: object
+          properties:
+            original_price:
+              description: Original price before the discount rule is applied.
+              type: string
+              readOnly: true
+            saved_amount:
+              description: Amount saved by the active discount rule.
+              type: string
+              readOnly: true
+          readOnly: true
+        addons:
+          description: Add-on field definitions configured for this product.
           type: array
           items:
             type: object
             properties:
+              id:
+                description: Unique add-on field identifier.
+                type: integer
+                readOnly: true
+              name:
+                description: Add-on field label shown to the customer.
+                type: string
+                readOnly: true
+              type:
+                description: Field type (custom_text, custom_textarea, multiple_choice, checkbox, select, datepicker, file_upload, input_multiplier, custom_price).
+                type: string
+                readOnly: true
+              description:
+                description: Optional field description shown below the label.
+                type: string
+                readOnly: true
+              required:
+                description: Whether the field must be filled before adding to cart.
+                type: boolean
+                readOnly: true
+              position:
+                description: Display order position (zero-based).
+                type: integer
+                readOnly: true
+              display:
+                description: Sub-display style for multiple_choice fields (select, radiobutton, images).
+                type: string
+                readOnly: true
+              adjust_price:
+                description: Whether this field adds a price adjustment to the product price.
+                type: boolean
+                readOnly: true
               price:
-                description: Scheme price.
+                description: Base price adjustment when adjust_price is true (options override this for choice-based types). For percentage_based, the percentage of the product price, e.g. "10" for 10%, not an amount.
                 type: string
-              period:
-                description: Scheme billing period label.
+                readOnly: true
+              price_type:
+                description: 'Price type: flat_fee, quantity_based, or percentage_based.'
                 type: string
-              value:
-                description: 'Scheme key: send it as `convert_to_sub` to `POST /cart/add-item` to add the product with this option ("0" for one-time). Without `convert_to_sub` the default option applies.'
-                type: string
-              rest_url:
-                description: Ready-made request to add the product with this option (`POST`).
-                type: string
-        vendor:
-          description: 'Vendor store information for the product. Plugin: Dokan.'
-          type: object
-          properties:
-            id:
-              description: Unique vendor identifier.
-              type: integer
-            store_name:
-              description: Vendor store display name.
-              type: string
-            store_url:
-              description: URL to the vendor store page.
-              type: string
-              format: uri
-            avatar:
-              description: URL to the vendor avatar image.
-              type: string
-              format: uri
-            rating:
-              description: Vendor rating summary.
-              type: object
-              properties:
-                average:
-                  description: Average vendor rating across all products.
+                readOnly: true
+              restrictions:
+                description: Whether min/max restrictions are enabled for this field.
+                type: boolean
+                readOnly: true
+              min:
+                description: Minimum value (character count for text fields, quantity for multiplier, price for custom_price).
+                type: number
+                readOnly: true
+              max:
+                description: Maximum value (same units as min).
+                type: number
+                readOnly: true
+              limit_file_types:
+                description: Whether file type restrictions are enabled (file_upload fields only).
+                type: boolean
+                readOnly: true
+              allowed_file_types:
+                description: Allowed file extensions when limit_file_types is true (e.g. ["jpg","pdf"]).
+                type: array
+                items:
                   type: string
-                count:
-                  description: Total number of reviews for the vendor.
-                  type: integer
+                readOnly: true
+              options:
+                description: Selectable options for choice-based field types.
+                type: array
+                items:
+                  type: object
+                  properties:
+                    label:
+                      description: Option label.
+                      type: string
+                      readOnly: true
+                    price:
+                      description: Price adjustment for this option. For percentage_based, the percentage of the product price, e.g. "10" for 10%, not an amount.
+                      type: string
+                      readOnly: true
+                    price_type:
+                      description: Price type for this option.
+                      type: string
+                      readOnly: true
+                    image:
+                      description: Image URL for swatch display (multiple_choice with images display).
+                      type: string
+                      readOnly: true
+                readOnly: true
+          readOnly: true
         warranty:
-          description: 'Warranty configuration for this product. Plugin: WooCommerce Warranty.'
+          description: Warranty configuration for this product.
           type: object
           properties:
             type:
               description: 'Warranty type: included or addon.'
               type: string
+              readOnly: true
             label:
               description: Warranty field label shown to the customer.
               type: string
+              readOnly: true
             options:
               description: Selectable warranty tiers.
               type: array
@@ -730,13 +756,191 @@ components:
                   key:
                     description: Key to send as `item_data[warranty]` to `POST /cart/add-item` to choose this warranty (the numeric index works too).
                     type: string
+                    readOnly: true
                   duration:
                     description: Human-readable warranty duration.
                     type: string
+                    readOnly: true
                   cost:
                     description: Additional cost for this warranty tier.
                     type: string
-      additionalProperties: true
+                    readOnly: true
+              readOnly: true
+          readOnly: true
+        vendor:
+          description: Vendor store information for the product.
+          type: object
+          properties:
+            id:
+              description: Unique vendor identifier.
+              type: integer
+              readOnly: true
+            store_name:
+              description: Vendor store display name.
+              type: string
+              readOnly: true
+            store_url:
+              description: URL to the vendor store page.
+              type: string
+              format: uri
+              readOnly: true
+            avatar:
+              description: URL to the vendor avatar image.
+              type: string
+              format: uri
+              readOnly: true
+            rating:
+              description: Vendor rating summary.
+              type: object
+              properties:
+                average:
+                  description: Average vendor rating across all products.
+                  type: string
+                  readOnly: true
+                count:
+                  description: Total number of reviews for the vendor.
+                  type: integer
+                  readOnly: true
+              readOnly: true
+          readOnly: true
+    ProductShippingRates:
+      description: The shipping rates a product would have.
+      type: object
+      properties:
+        object:
+          description: 'The kind of document: "shipping_rates".'
+          type: string
+          enum:
+          - shipping_rates
+          readOnly: true
+        product:
+          description: The product the rates are for.
+          type: object
+          properties:
+            id:
+              description: Product or variation ID.
+              type: integer
+              readOnly: true
+            parent_id:
+              description: Parent product ID, or 0.
+              type: integer
+              readOnly: true
+            name:
+              description: Product name.
+              type: string
+              readOnly: true
+            type:
+              description: Product type.
+              type: string
+              readOnly: true
+          readOnly: true
+        quantity:
+          description: The quantity the rates are for.
+          type: number
+          readOnly: true
+        currency:
+          description: The store currency, which the costs are in.
+          type: object
+          properties:
+            currency_code:
+              description: Currency code.
+              type: string
+              readOnly: true
+            currency_symbol:
+              description: Currency symbol.
+              type: string
+              readOnly: true
+            currency_symbol_pos:
+              description: The currency symbol position to which the currency needs to return for the prices.
+              type: string
+              readOnly: true
+            currency_minor_unit:
+              description: Currency minor unit.
+              type: integer
+              readOnly: true
+            currency_decimal_separator:
+              description: Currency decimal separator.
+              type: string
+              readOnly: true
+            currency_thousand_separator:
+              description: Currency thousand separator.
+              type: string
+              readOnly: true
+            currency_prefix:
+              description: Currency prefix.
+              type: string
+              readOnly: true
+            currency_suffix:
+              description: Currency suffix.
+              type: string
+              readOnly: true
+          readOnly: true
+        in_cart:
+          description: Whether this item, with these options, is already in the cart. Null without a cart session.
+          type: boolean
+          readOnly: true
+          nullable: true
+        packages:
+          description: The shipping packages with rates on offer.
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                description: 'Package ID, as checkout gives it and the cart gives it in `index`: "0" for the first package.'
+                type: string
+                readOnly: true
+              destination:
+                description: Where the package goes, on one line.
+                type: string
+                readOnly: true
+              rates:
+                description: The rates on offer.
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      description: Rate ID.
+                      type: string
+                      readOnly: true
+                    method_id:
+                      description: Shipping method ID.
+                      type: string
+                      readOnly: true
+                    instance_id:
+                      description: Shipping method instance ID.
+                      type: integer
+                      readOnly: true
+                    label:
+                      description: Label for display.
+                      type: string
+                      readOnly: true
+                    cost:
+                      description: Cost, excluding tax. In minor units, e.g. "4999", or formatted for display with `formatted=true`.
+                      type: string
+                      readOnly: true
+                    tax:
+                      description: Tax on the cost, all tax rates added together. In minor units, e.g. "4999", or formatted for display with `formatted=true`.
+                      type: string
+                      readOnly: true
+                    meta_data:
+                      description: More about the rate, e.g. the items it ships.
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          key:
+                            description: Meta key.
+                            type: string
+                            readOnly: true
+                          value:
+                            description: Meta value.
+                            type: string
+                            readOnly: true
+                      readOnly: true
+                readOnly: true
+          readOnly: true
 security:
 - {}
 - basicAuth: []

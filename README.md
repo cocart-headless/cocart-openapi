@@ -8,7 +8,7 @@ Specifications are organized by plugin and API version. Each plugin directory co
 
 The core CoCart plugin provides cart management, product browsing, session administration, authentication, and store information endpoints.
 
-### CoCart Starter Edition — API v2 (Latest)
+### CoCart Starter Edition — API v2
 
 The latest specifications, reflecting CoCart Starter **v5.0.0** (Releasing soon).
 
@@ -62,12 +62,12 @@ Reflects CoCart Plus **v2.0.0** (In development).
 
 | File | Description | Endpoints |
 |------|-------------|-----------|
-| [Collection](plus/v2/openapi-cocart-plus-v2-collection.yaml) | All Plus v2 endpoints (excluding checkout) | 27 paths |
+| [Collection](plus/v2/openapi-cocart-plus-v2-collection.yaml) | All Plus v2 endpoints (excluding checkout) | 30 paths |
 | [Cart](plus/v2/openapi-cocart-plus-cart-v2.yaml) | Cart operations — mini cart, coupons, fees, remove all items, set shipping method | 9 paths |
 | [Products](plus/v2/openapi-cocart-plus-products-v2.yaml) | Product Shipping Calculation | 1 path |
-| [My Account](plus/v2/openapi-cocart-plus-my-account-v2.yaml) | My account - customer dashboard, address, orders, downloads, subscriptions (list, view, suspend, cancel, reactivate, auto-renew, payment method, resubscribe) | 16 paths |
-| [Others](plus/v2/openapi-cocart-plus-others-v2.yaml) | Customer registration, Order withdrawal | 2 paths |
-| [Checkout](plus/v2/openapi-cocart-plus-checkout-v2.yaml) | Checkout - process orders, process payments, confirm payments after an off-site step (3D Secure, redirect gateways) | 8 paths |
+| [My Account](plus/v2/openapi-cocart-plus-my-account-v2.yaml) | My account - customer dashboard, address, orders, downloads, subscriptions (list, view, suspend, cancel, reactivate, auto-renew, payment method, resubscribe), email verification | 17 paths |
+| [Others](plus/v2/openapi-cocart-plus-others-v2.yaml) | Customer registration, Order withdrawal, Batch requests | 3 paths |
+| [Checkout](plus/v2/openapi-cocart-plus-checkout-v2.yaml) | Checkout - process orders, process payments, confirm payments after an off-site step (3D Secure, redirect gateways), find how a checkout ended | 9 paths |
 
 ### CoCart SEO Pack
 
